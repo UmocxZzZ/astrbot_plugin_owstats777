@@ -29,12 +29,6 @@
     "hint": "在大神主页 F12 控制台运行脚本获取",
     "default": ""
   },
-  "default_bnet_id": {
-    "description": "默认 BattleTag",
-    "type": "string",
-    "hint": "未绑定用户查询时使用的默认 BattleTag，留空则必须绑定或指定",
-    "default": ""
-  },
   "default_timeout": {
     "description": "默认请求超时（秒）",
     "type": "int",
