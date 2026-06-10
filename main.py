@@ -45,8 +45,8 @@ class OWStatsPlugin(Star):
             if overstats_dir not in sys.path:
                 sys.path.insert(0, overstats_dir)
 
+            # 先导入 config 模块并注入配置（必须在导入 src 之前）
             import config as overstats_config
-            from src import create_server
 
             # 注入插件配置的大神账号
             dashen_role_id = self.config.get("dashen_role_id", "")
@@ -64,6 +64,9 @@ class OWStatsPlugin(Star):
             # 禁用 Overstats 内置 AI，使用 Astrbot 的 LLM
             overstats_config.ANALYSIS_BASE_URL = ""
             overstats_config.ANALYSIS_API_KEY = ""
+
+            # 配置注入完成后再导入 server（server 会导入 client，client 会读取 config）
+            from src import create_server
 
             api_config = overstats_config.get_api_config()
             api_config.port = self.overstats_port
