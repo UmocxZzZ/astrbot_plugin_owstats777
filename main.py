@@ -62,16 +62,9 @@ class OWStatsPlugin(Star):
                 ]
                 logger.info("已注入大神账号配置")
 
-            # 注入 AI 配置（从 Astrbot 插件配置读取）
-            ai_base_url = self.config.get("ai_base_url", "")
-            ai_api_key = self.config.get("ai_api_key", "")
-            ai_model = self.config.get("ai_model", "")
-            if ai_base_url:
-                overstats_config.ANALYSIS_BASE_URL = ai_base_url
-            if ai_api_key:
-                overstats_config.ANALYSIS_API_KEY = ai_api_key
-            if ai_model:
-                overstats_config.ANALYSIS_OPENAI_MODEL = ai_model
+            # 禁用 Overstats 内置 AI，使用 Astrbot 的 LLM
+            overstats_config.ANALYSIS_BASE_URL = ""
+            overstats_config.ANALYSIS_API_KEY = ""
 
             api_config = overstats_config.get_api_config()
             api_config.port = self.overstats_port
