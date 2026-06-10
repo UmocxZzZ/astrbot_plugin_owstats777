@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import base64
+import json
+import re
 import sys
 import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 from astrbot.api import AstrBotConfig, logger
@@ -102,6 +104,195 @@ class OWStatsPlugin(Star):
                 logger.info("Overstats 内置服务已停止")
             except Exception as e:
                 logger.error(f"停止 Overstats 服务失败: {e}")
+
+    # ======================== AI 分析方法 ========================
+
+    def _import_overstats_modules(self):
+        """延迟导入 Overstats 模块"""
+        try:
+            overstats_dir = str(Path(__file__).parent / "Overstats")
+            if overstats_dir not in sys.path:
+                sys.path.insert(0, overstats_dir)
+
+            from src.modules.dashen_match.enhanced_render import (
+                generate_match_summary_text,
+                generate_detailed_stats_text,
+                calculate_match_scores,
+                render_analysis_report,
+                render_court_report,
+                build_carry_index_data,
+                build_target_hero_icons,
+                map_name_for_match,
+                map_icon_image_for_match,
+            )
+            from src.modules.dashen_match.render import (
+                _extract_match_detail_data,
+            )
+            return {
+                "generate_match_summary_text": generate_match_summary_text,
+                "generate_detailed_stats_text": generate_detailed_stats_text,
+                "calculate_match_scores": calculate_match_scores,
+                "render_analysis_report": render_analysis_report,
+                "render_court_report": render_court_report,
+                "build_carry_index_data": build_carry_index_data,
+                "build_target_hero_icons": build_target_hero_icons,
+                "map_name_for_match": map_name_for_match,
+                "map_icon_image_for_match": map_icon_image_for_match,
+                "_extract_match_detail_data": _extract_match_detail_data,
+            }
+        except Exception as e:
+            logger.error(f"导入 Overstats 模块失败: {e}")
+            return None
+
+    def _build_analysis_prompt(self, match_data: dict, target_id: str, mode: str = "analysis") -> str:
+        """构建 AI 分析 prompt"""
+        modules = self._import_overstats_modules()
+        if not modules:
+            return ""
+
+        summary_text = modules["generate_match_summary_text"](match_data, target_id)
+        detailed_text = modules["generate_detailed_stats_text"](match_data.get("_all_player_details", []), target_id)
+        score_bundle = modules["calculate_match_scores"](match_data)
+
+        if mode == "court":
+            return f"""你是电竞法庭的主审法官。本庭今日审理的是一场守望先锋对局。你需要以绝对中立的视角，基于数据证据，做出公正判决。
+
+【输出要求】
+1. 必须严格使用中文，只输出纯 JSON，不要 markdown，不要解释，不要前后缀。
+2. 判决必须基于数据事实，不允许主观臆测或无端指责。
+3. 好的表现必须肯定，差的表现必须严厉批判，不留情面。
+
+【审判任务】
+1. 只审判焦点玩家所在队伍的队友（不含对手），从队友中找出本局 MVP（表现最佳者），给出判决理由。
+2. 只审判焦点玩家所在队伍的队友（不含对手），从队友中找出本局最差玩家（被告），给出判决理由。
+3. 为被告列出"原罪清单"——具体犯了哪些错误，用数据说话。
+4. 对焦点玩家做出判决：是功臣还是罪人，给出评分 S/A/B/C/D。
+5. 对焦点玩家所在队伍的所有玩家（含焦点玩家自己）逐一做出有功/有过/无功无过的判决，附一句话理由。
+6. 必须严格比较三路：坦克位、输出位、辅助位的对位差距（含对手对比）。
+
+【输出 JSON 模板】
+{{
+  "player_id": "{target_id}",
+  "score": "S/A/B/C/D",
+  "verdict": "焦点玩家判决：功臣/罪人/无功无过",
+  "mvp": {{"player_id": "MVP玩家ID", "reason": "当选理由"}},
+  "worst": {{"player_id": "最差玩家ID", "reason": "判决理由"}},
+  "sins": ["原罪1：具体错误", "原罪2：具体错误", "原罪3：具体错误"],
+  "player_verdicts": [
+    {{"player_id": "玩家1", "verdict": "有功", "reason": "理由"}},
+    {{"player_id": "玩家2", "verdict": "有过", "reason": "理由"}}
+  ],
+  "role_comparison": ["坦克位：对比", "输出位：对比", "辅助位：对比"],
+  "key_moment": "关键转折点",
+  "attribute_scores": {{
+    "anti_pressure": {score_bundle["anti_pressure"]},
+    "teamwork": {score_bundle["teamwork"]},
+    "aggressiveness": {score_bundle["aggressiveness"]},
+    "match_quality": {score_bundle["match_quality"]}
+  }},
+  "closing": "法官结案陈词（50字以内）"
+}}
+
+【原始比赛数据如下】
+{summary_text}
+--------------------------------------------------
+{detailed_text}
+--------------------------------------------------"""
+        else:
+            return f"""请扮演一位资深的电竞数据分析师，根据提供的比赛数据，输出一份犀利、简明扼要的分析报告。
+
+【输出要求】
+1. 必须严格使用中文，只输出纯 JSON，不要 markdown，不要解释，不要前后缀。
+2. 分析必须专业、简明、直接，结论要清晰，不能硬夸，不能胡编。
+3. 所有判断都必须以给定数据为准，不得虚构不存在的对局细节。
+
+【任务】
+1. 客观给焦点玩家评分，只能填 S/A/B/C/D。
+2. 用一句话指出焦点玩家最大优点或最大问题。
+3. 只写一个最关键的胜负手。
+4. 必须明确点出真正的 MVP 或背锅位，不能强行偏袒焦点玩家。
+5. 必须严格比较三路：坦克位、输出位、辅助位。
+6. `attribute_scores` 的数值必须原样保留，不允许改动。
+
+【输出 JSON 模板】
+{{
+  "player_id": "{target_id}",
+  "score": "S/A/B/C/D",
+  "general_summary": "一句话核心总结",
+  "key_to_win_loss": "决定胜负的唯一核心点",
+  "red_black_list": {{
+    "mvp_or_potg": "真正的 MVP 或背锅位及依据",
+    "role_comparison": ["坦克位：对比", "输出位：对比", "辅助位：对比"],
+    "outstanding_performance": "最突出的个人表现"
+  }},
+  "summary": "一句话总结本场整体观感",
+  "attribute_scores": {{
+    "anti_pressure": {score_bundle["anti_pressure"]},
+    "teamwork": {score_bundle["teamwork"]},
+    "aggressiveness": {score_bundle["aggressiveness"]},
+    "match_quality": {score_bundle["match_quality"]}
+  }},
+  "evaluation": "基于四项属性分的针对性评价",
+  "extra": "100字以内的人格化鼓励/安慰/小结",
+  "carry_index_data": []
+}}
+
+【原始比赛数据如下】
+{summary_text}
+--------------------------------------------------
+{detailed_text}
+--------------------------------------------------"""
+
+    def _parse_ai_json(self, text: str) -> Optional[dict]:
+        """从 LLM 响应中解析 JSON"""
+        # 尝试直接解析
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # 尝试提取 JSON 块
+        patterns = [
+            r'```json\s*([\s\S]*?)\s*```',
+            r'```\s*([\s\S]*?)\s*```',
+            r'\{[\s\S]*\}',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                try:
+                    json_str = match.group(1) if match.lastindex else match.group(0)
+                    return json.loads(json_str)
+                except (json.JSONDecodeError, IndexError):
+                    continue
+        return None
+
+    async def _call_astrbot_llm(self, event: AstrMessageEvent, prompt: str) -> Optional[str]:
+        """调用 Astrbot 的 LLM Provider"""
+        try:
+            provider_id = await self.context.get_current_chat_provider_id(umo=event.unified_msg_origin)
+            if not provider_id:
+                return None
+            resp = await self.context.llm_generate(chat_provider_id=provider_id, prompt=prompt)
+            return resp.completion_text
+        except Exception as e:
+            logger.error(f"调用 Astrbot LLM 失败: {e}")
+            return None
+
+    async def _get_match_raw_data(self, bnet_id: str, index: int) -> Optional[dict]:
+        """获取对局原始数据"""
+        try:
+            # 获取对局详情 JSON
+            detail = await self._call_overstats("/api/v2/dashen-match/detail", {
+                "bnet_id": bnet_id,
+                "index": index,
+            })
+            if not detail.get("ok"):
+                return None
+            return detail
+        except Exception as e:
+            logger.error(f"获取对局数据失败: {e}")
+            return None
 
     # ======================== 工具方法 ========================
 
@@ -436,15 +627,62 @@ class OWStatsPlugin(Star):
                 return
 
         try:
-            payload = {"bnet_id": bnet_id, "index": index, "show_all_heroes": True}
             if analyze:
-                payload["analyze"] = True
-                result = await self._call_overstats("/api/v2/dashen-match/detail/replies", payload, timeout=self.ai_timeout)
-                async for r in self._handle_image_response(event, result):
-                    yield r
+                # 使用 Astrbot LLM 进行 AI 锐评
+                yield event.plain_result("AI 锐评生成中，请稍候...")
+
+                # 获取对局原始数据
+                raw_data = await self._get_match_raw_data(bnet_id, index)
+                if not raw_data or not raw_data.get("ok"):
+                    yield event.plain_result("获取对局数据失败。")
+                    return
+
+                # 构建 prompt 并调用 LLM
+                modules = self._import_overstats_modules()
+                if not modules:
+                    yield event.plain_result("Overstats 模块加载失败。")
+                    return
+
+                detail = raw_data.get("detail", {})
+                match_data = modules["_extract_match_detail_data"](detail)
+                target_id = raw_data.get("resolved", {}).get("full_id", bnet_id)
+
+                prompt = self._build_analysis_prompt(match_data, target_id, mode="analysis")
+                llm_response = await self._call_astrbot_llm(event, prompt)
+
+                if not llm_response:
+                    yield event.plain_result("AI 锐评生成失败：LLM 调用失败。")
+                    return
+
+                # 解析 JSON 响应
+                parsed = self._parse_ai_json(llm_response)
+                if not parsed:
+                    yield event.plain_result("AI 锐评生成失败：无法解析 LLM 响应。")
+                    return
+
+                # 渲染图片
+                import time as _time
+                parsed["generated_at"] = _time.strftime("%Y-%m-%d %H:%M", _time.localtime())
+                parsed["carry_index_data"] = modules["build_carry_index_data"](match_data)
+
+                focus_player = detail.get("heroList", [{}])[0] if detail.get("heroList") else {}
+                court_image = modules["render_analysis_report"](
+                    parsed,
+                    target_hero_images=modules["build_target_hero_icons"](detail.get("heroList", []), size=40),
+                    map_name=modules["map_name_for_match"](detail),
+                    map_icon_img=modules["map_icon_image_for_match"](detail),
+                    match_result="胜利" if detail.get("matchRet") == 1 else "失败",
+                    footer_source="AI锐评 (Astrbot LLM)",
+                )
+                path = await self._save_temp_image(court_image.to_bytes())
+                yield event.image_result(path)
                 await self._set_ai_cooldown(event)
             else:
-                result = await self._call_overstats("/api/v2/dashen-match/detail/replies", payload)
+                result = await self._call_overstats("/api/v2/dashen-match/detail/replies", {
+                    "bnet_id": bnet_id,
+                    "index": index,
+                    "show_all_heroes": True,
+                })
                 async for r in self._handle_image_response(event, result):
                     yield r
         except Exception as exc:
@@ -471,12 +709,53 @@ class OWStatsPlugin(Star):
             return
 
         try:
-            result = await self._call_overstats("/api/v2/dashen-match/detail/court", {
-                "bnet_id": bnet_id,
-                "index": index,
-            }, timeout=self.ai_timeout)
-            async for r in self._handle_image_response(event, result):
-                yield r
+            # 使用 Astrbot LLM 进行 AI 开庭
+            yield event.plain_result("AI 开庭生成中，请稍候...")
+
+            # 获取对局原始数据
+            raw_data = await self._get_match_raw_data(bnet_id, index)
+            if not raw_data or not raw_data.get("ok"):
+                yield event.plain_result("获取对局数据失败。")
+                return
+
+            # 构建 prompt 并调用 LLM
+            modules = self._import_overstats_modules()
+            if not modules:
+                yield event.plain_result("Overstats 模块加载失败。")
+                return
+
+            detail = raw_data.get("detail", {})
+            match_data = modules["_extract_match_detail_data"](detail)
+            target_id = raw_data.get("resolved", {}).get("full_id", bnet_id)
+
+            prompt = self._build_analysis_prompt(match_data, target_id, mode="court")
+            llm_response = await self._call_astrbot_llm(event, prompt)
+
+            if not llm_response:
+                yield event.plain_result("AI 开庭生成失败：LLM 调用失败。")
+                return
+
+            # 解析 JSON 响应
+            parsed = self._parse_ai_json(llm_response)
+            if not parsed:
+                yield event.plain_result("AI 开庭生成失败：无法解析 LLM 响应。")
+                return
+
+            # 渲染图片
+            import time as _time
+            parsed["generated_at"] = _time.strftime("%Y-%m-%d %H:%M", _time.localtime())
+            parsed["carry_index_data"] = modules["build_carry_index_data"](match_data)
+
+            court_image = modules["render_court_report"](
+                parsed,
+                target_hero_images=modules["build_target_hero_icons"](detail.get("heroList", []), size=40),
+                map_name=modules["map_name_for_match"](detail),
+                map_icon_img=modules["map_icon_image_for_match"](detail),
+                match_result="胜利" if detail.get("matchRet") == 1 else "失败",
+                footer_source="AI开庭 (Astrbot LLM)",
+            )
+            path = await self._save_temp_image(court_image.to_bytes())
+            yield event.image_result(path)
             await self._set_ai_cooldown(event)
         except Exception as exc:
             async for r in self._handle_overstats_error(event, exc):
