@@ -17,6 +17,36 @@
     "hint": "外部 Overstats 服务地址，仅在内置服务关闭时使用",
     "default": "http://127.0.0.1:18080"
   },
+  "dashen_role_id": {
+    "description": "大神 role_id",
+    "type": "string",
+    "hint": "从大神充值中心 F12 抓取",
+    "default": ""
+  },
+  "dashen_token": {
+    "description": "大神 token",
+    "type": "string",
+    "hint": "在大神主页 F12 控制台运行脚本获取",
+    "default": ""
+  },
+  "ai_base_url": {
+    "description": "AI 接口地址",
+    "type": "string",
+    "hint": "OpenAI 兼容接口地址，如 https://api.openai.com/v1",
+    "default": ""
+  },
+  "ai_api_key": {
+    "description": "AI API Key",
+    "type": "string",
+    "hint": "AI 接口的 API Key",
+    "default": ""
+  },
+  "ai_model": {
+    "description": "AI 模型名称",
+    "type": "string",
+    "hint": "如 gpt-4o、deepseek-chat、mimo-v2.5 等",
+    "default": ""
+  },
   "default_bnet_id": {
     "description": "默认 BattleTag",
     "type": "string",

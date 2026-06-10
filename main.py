@@ -44,12 +44,36 @@ class OWStatsPlugin(Star):
             if overstats_dir not in sys.path:
                 sys.path.insert(0, overstats_dir)
 
-            from config import get_api_config
+            import config as overstats_config
             from src import create_server
 
-            config = get_api_config()
-            config.port = self.overstats_port
-            self._overstats_server = create_server(config)
+            # 注入插件配置的大神账号
+            dashen_role_id = self.config.get("dashen_role_id", "")
+            dashen_token = self.config.get("dashen_token", "")
+            if dashen_role_id and dashen_token:
+                overstats_config.DASHEN_ACCOUNTS = [
+                    {
+                        "name": "plugin-account",
+                        "role_id": int(dashen_role_id),
+                        "token": dashen_token,
+                    }
+                ]
+                logger.info("已注入大神账号配置")
+
+            # 注入 AI 配置
+            ai_base_url = self.config.get("ai_base_url", "")
+            ai_api_key = self.config.get("ai_api_key", "")
+            ai_model = self.config.get("ai_model", "")
+            if ai_base_url:
+                overstats_config.ANALYSIS_BASE_URL = ai_base_url
+            if ai_api_key:
+                overstats_config.ANALYSIS_API_KEY = ai_api_key
+            if ai_model:
+                overstats_config.ANALYSIS_OPENAI_MODEL = ai_model
+
+            api_config = overstats_config.get_api_config()
+            api_config.port = self.overstats_port
+            self._overstats_server = create_server(api_config)
 
             # 在后台线程中运行服务器
             self._overstats_thread = threading.Thread(
