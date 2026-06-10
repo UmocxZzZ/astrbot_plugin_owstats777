@@ -17,7 +17,6 @@ class OWStatsPlugin(Star):
         super().__init__(context)
         self.config = config
         self.base_url: str = config.get("overstats_url", "http://127.0.0.1:18080").rstrip("/")
-        self.default_bnet_id: str = config.get("default_bnet_id", "")
         self.default_timeout: int = config.get("default_timeout", 30)
         self.summary_timeout: int = config.get("summary_timeout", 90)
         self.ai_timeout: int = config.get("ai_timeout", 180)
@@ -35,7 +34,7 @@ class OWStatsPlugin(Star):
         return f"{event.get_platform_name()}:{event.get_sender_id()}"
 
     async def _resolve_bnet_id(self, event: AstrMessageEvent, arg: Optional[str] = None) -> str:
-        """解析玩家 ID：命令参数 > 用户绑定 > 默认值"""
+        """解析玩家 ID：命令参数 > 用户绑定"""
         if arg:
             return arg
         # 查用户绑定
@@ -43,8 +42,6 @@ class OWStatsPlugin(Star):
         bound = await self.get_kv_data(bind_key, "")
         if bound:
             return bound
-        if self.default_bnet_id:
-            return self.default_bnet_id
         return ""
 
     async def _check_ai_cooldown(self, event: AstrMessageEvent) -> tuple[bool, int]:
