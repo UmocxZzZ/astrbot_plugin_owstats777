@@ -1,8 +1,20 @@
 {
+  "embedded_overstats": {
+    "description": "内置 Overstats 服务",
+    "type": "bool",
+    "hint": "启用后插件会自动启动 Overstats 服务，无需外部部署",
+    "default": true
+  },
+  "overstats_port": {
+    "description": "Overstats 服务端口",
+    "type": "int",
+    "hint": "内置 Overstats 服务监听端口",
+    "default": 18080
+  },
   "overstats_url": {
     "description": "Overstats 服务地址",
     "type": "string",
-    "hint": "本地 Overstats 服务地址，如 http://127.0.0.1:18080",
+    "hint": "外部 Overstats 服务地址，仅在内置服务关闭时使用",
     "default": "http://127.0.0.1:18080"
   },
   "default_bnet_id": {

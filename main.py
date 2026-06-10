@@ -1,7 +1,10 @@
+
 from __future__ import annotations
 
 import base64
+import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -16,17 +19,65 @@ class OWStatsPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
-        self.base_url: str = config.get("overstats_url", "http://127.0.0.1:18080").rstrip("/")
+        self.overstats_url: str = config.get("overstats_url", "http://127.0.0.1:18080").rstrip("/")
         self.default_bnet_id: str = config.get("default_bnet_id", "")
         self.default_timeout: int = config.get("default_timeout", 30)
         self.summary_timeout: int = config.get("summary_timeout", 90)
         self.ai_timeout: int = config.get("ai_timeout", 180)
         self.ai_whitelist: list = config.get("ai_whitelist", [])
         self.ai_cooldown: int = config.get("ai_cooldown_seconds", 300)
+        self.embedded_overstats: bool = config.get("embedded_overstats", True)
+        self.overstats_port: int = config.get("overstats_port", 18080)
         self.client = httpx.AsyncClient(timeout=self.default_timeout)
+        self._overstats_server = None
+        self._overstats_thread = None
+
+        # 启动内置 Overstats 服务
+        if self.embedded_overstats:
+            self._start_embedded_overstats()
+
+    def _start_embedded_overstats(self):
+        """启动内置的 Overstats HTTP 服务"""
+        try:
+            # 添加 Overstats 目录到 Python 路径
+            overstats_dir = str(Path(__file__).parent / "Overstats")
+            if overstats_dir not in sys.path:
+                sys.path.insert(0, overstats_dir)
+
+            from config import get_api_config
+            from src import create_server
+
+            config = get_api_config()
+            config.port = self.overstats_port
+            self._overstats_server = create_server(config)
+
+            # 在后台线程中运行服务器
+            self._overstats_thread = threading.Thread(
+                target=self._overstats_server.serve_forever,
+                daemon=True,
+                name="overstats-server"
+            )
+            self._overstats_thread.start()
+
+            # 更新 URL 为内置服务地址
+            self.overstats_url = f"http://127.0.0.1:{self.overstats_port}"
+
+            logger.info(f"Overstats 内置服务已启动: {self.overstats_url}")
+        except Exception as e:
+            logger.error(f"Overstats 内置服务启动失败: {e}")
+            logger.info("将使用外部 Overstats 服务")
 
     async def terminate(self):
+        """插件卸载时停止服务"""
         await self.client.aclose()
+
+        # 停止内置 Overstats 服务
+        if self._overstats_server:
+            try:
+                self._overstats_server.shutdown()
+                logger.info("Overstats 内置服务已停止")
+            except Exception as e:
+                logger.error(f"停止 Overstats 服务失败: {e}")
 
     # ======================== 工具方法 ========================
 
@@ -68,14 +119,14 @@ class OWStatsPlugin(Star):
 
     async def _call_overstats(self, endpoint: str, payload: dict, timeout: Optional[int] = None) -> dict:
         """调用 Overstats API"""
-        url = f"{self.base_url}{endpoint}"
+        url = f"{self.overstats_url}{endpoint}"
         resp = await self.client.post(url, json=payload, timeout=timeout or self.default_timeout)
         resp.raise_for_status()
         return resp.json()
 
     async def _call_overstats_image(self, endpoint: str, payload: dict, timeout: Optional[int] = None) -> bytes:
         """调用 Overstats 图片 API，返回 PNG 二进制"""
-        url = f"{self.base_url}{endpoint}"
+        url = f"{self.overstats_url}{endpoint}"
         resp = await self.client.post(url, json=payload, timeout=timeout or self.default_timeout)
         resp.raise_for_status()
         return resp.content
