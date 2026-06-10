@@ -60,7 +60,7 @@ class OWStatsPlugin(Star):
                 ]
                 logger.info("已注入大神账号配置")
 
-            # 注入 AI 配置
+            # 注入 AI 配置（从 Astrbot 插件配置读取）
             ai_base_url = self.config.get("ai_base_url", "")
             ai_api_key = self.config.get("ai_api_key", "")
             ai_model = self.config.get("ai_model", "")
