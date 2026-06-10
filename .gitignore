@@ -1,0 +1,35 @@
+# 个人配置（包含敏感信息）
+config.personal.py
+config.py
+Overstats/config/config.py
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 构建产物
+*.zip
+*.tar.gz
+
+# 测试数据
+court_image_*.png
+court_result.json
+
+# Astrbot
+Overstats/cache/
+Overstats/res/query_tool_assets/
