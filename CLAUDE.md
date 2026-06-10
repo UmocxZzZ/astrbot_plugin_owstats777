@@ -65,8 +65,7 @@ astrbot_plugin_owstats777/
 **绑定逻辑**：
 - 使用 Astrbot KV 存储，key 格式：`bind:{platform}:{user_id}`，value 为 BattleTag
 - 绑定后，所有查询命令省略玩家参数时自动使用绑定 ID
-- 优先级：命令参数 > 用户绑定 > 插件配置默认值
-- 解绑后恢复使用插件配置的 `default_bnet_id`（如有）
+- 优先级：命令参数 > 用户绑定
 - BattleTag 格式校验：必须包含 `#`，如 `Player#12345`
 - 支持管理员查看他人绑定，普通用户只能操作自己的绑定
 
@@ -120,7 +119,7 @@ AI 锐评（`ow 详情 ... 锐评`）和 AI 开庭（`ow 开庭`）受使用频�
 - 使用 Astrbot KV 存储（`put_kv_data` / `get_kv_data`）
 - Key 格式：`bind:{platform}:{user_id}`（如 `bind:aiocqhttp:123456789`）
 - Value：BattleTag 字符串（如 `Gulee#5667`）
-- 解析优先级：命令参数 > 用户绑定 > 插件配置 `default_bnet_id`
+- 解析优先级：命令参数 > 用户绑定
 - BattleTag 格式校验：必须包含 `#` 且长度合理
 
 ### 图片处理
@@ -136,7 +135,6 @@ AI 锐评（`ow 详情 ... 锐评`）和 AI 开庭（`ow 开庭`）受使用频�
 
 ### 配置项（`_conf_schema.json`）
 - `overstats_url`：Overstats 服务地址，默认 `http://127.0.0.1:18080`
-- `default_bnet_id`：默认 BattleTag（可选）
 - `default_timeout`：默认请求超时秒数，默认 30
 - `ai_whitelist`：AI 锐评/开庭白名单用户 ID 列表（无冷却限制）
 - `ai_cooldown_seconds`：普通用户 AI 锐评冷却时间，默认 300（5分钟）
