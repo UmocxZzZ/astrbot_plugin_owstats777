@@ -1,7 +1,6 @@
 # 个人配置（包含敏感信息）
 config.personal.py
 config.py
-Overstats/config/config.py
 .env
 
 # 开发文档
