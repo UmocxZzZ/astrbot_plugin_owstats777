@@ -2,6 +2,10 @@
 config.personal.py
 config.py
 Overstats/config/config.py
+.env
+
+# 开发文档
+CLAUDE.md
 
 # Python
 __pycache__/
@@ -23,8 +27,11 @@ env/
 Thumbs.db
 
 # 构建产物
-*.zip
-*.tar.gz
+release/
+
+# 部署脚本（仅用于服务器部署）
+Overstats/install.sh
+Overstats/uninstall.sh
 
 # 测试数据
 court_image_*.png
