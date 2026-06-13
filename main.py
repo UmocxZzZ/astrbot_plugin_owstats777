@@ -22,7 +22,7 @@ class OWStatsPlugin(Star):
         super().__init__(context)
         self.config = config
         self.overstats_url: str = config.get("overstats_url", "http://127.0.0.1:18080").rstrip("/")
-        self.default_timeout: int = config.get("default_timeout", 30)
+        self.default_timeout: int = config.get("default_timeout", 60)
         self.summary_timeout: int = config.get("summary_timeout", 90)
         self.ai_timeout: int = config.get("ai_timeout", 180)
         self.ai_whitelist: list = config.get("ai_whitelist", [])
@@ -45,31 +45,68 @@ class OWStatsPlugin(Star):
             if overstats_dir not in sys.path:
                 sys.path.insert(0, overstats_dir)
 
-            # 先导入 config 模块并注入配置（必须在导入 src 之前）
-            import config as overstats_config
-
             # 注入插件配置的大神账号
             dashen_role_id = self.config.get("dashen_role_id", "")
             dashen_token = self.config.get("dashen_token", "")
+            logger.info(f"大神配置: role_id={dashen_role_id}, token={'***' if dashen_token else '未配置'}")
             if dashen_role_id and dashen_token:
-                overstats_config.DASHEN_ACCOUNTS = [
-                    {
-                        "name": "plugin-account",
-                        "role_id": int(dashen_role_id),
-                        "token": dashen_token,
-                    }
-                ]
-                logger.info("已注入大神账号配置")
+                # 直接修改 Overstats 配置文件，确保所有导入路径都能读到
+                config_file = Path(overstats_dir) / "config" / "config.py"
+                config_content = config_file.read_text(encoding="utf-8")
+                # 替换 DASHEN_ACCOUNTS
+                import re
+                new_accounts = f'''DASHEN_ACCOUNTS = [
+    {{
+        "name": "plugin-account",
+        "role_id": {dashen_role_id},
+        "token": "{dashen_token}",
+    }},
+]'''
+                config_content = re.sub(
+                    r'DASHEN_ACCOUNTS\s*=\s*\[.*?\]',
+                    new_accounts,
+                    config_content,
+                    flags=re.DOTALL
+                )
+                config_file.write_text(config_content, encoding="utf-8")
+                logger.info("已注入大神账号配置到配置文件")
+            else:
+                logger.warning("请在 Astrbot WebUI 插件配置中填写 dashen_role_id 和 dashen_token，否则查询功能将无法使用")
+
+            # 清除模块缓存，确保读取到修改后的配置文件
+            for mod_name in list(sys.modules.keys()):
+                if mod_name.startswith("config") or mod_name.startswith("overstats"):
+                    del sys.modules[mod_name]
+
+            # 导入 config.config 模块（不是 config 包）
+            from config import config as overstats_config
 
             # 禁用 Overstats 内置 AI，使用 Astrbot 的 LLM
             overstats_config.ANALYSIS_BASE_URL = ""
             overstats_config.ANALYSIS_API_KEY = ""
 
+            # 确保必要的配置字段有默认值
+            if not getattr(overstats_config, "DASHEN_USER_AGENT", ""):
+                overstats_config.DASHEN_USER_AGENT = (
+                    "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 "
+                    "app/df_client dfVersion/100111"
+                )
+
             # 配置注入完成后再导入 server（server 会导入 client，client 会读取 config）
+            from config.loader import APIConfig, get_api_config
             from src import create_server
 
-            api_config = overstats_config.get_api_config()
-            api_config.port = self.overstats_port
+            api_config = get_api_config()
+            # 创建新实例替换 port（APIConfig 是 frozen dataclass）
+            api_config = APIConfig(
+                host=api_config.host,
+                port=self.overstats_port,
+                use_stream_response=api_config.use_stream_response,
+                enable_database_write=api_config.enable_database_write,
+                dashen_max_concurrent_requests=api_config.dashen_max_concurrent_requests,
+                dashen_max_accepted_requests=api_config.dashen_max_accepted_requests,
+            )
             self._overstats_server = create_server(api_config)
 
             # 在后台线程中运行服务器
@@ -86,7 +123,7 @@ class OWStatsPlugin(Star):
             logger.info(f"Overstats 内置服务已启动: {self.overstats_url}")
         except Exception as e:
             logger.error(f"Overstats 内置服务启动失败: {e}")
-            logger.info("将使用外部 Overstats 服务")
+            logger.warning("内置 Overstats 服务启动失败，请检查插件配置中的大神 role_id 和 token 是否正确。")
 
     async def terminate(self):
         """插件卸载时停止服务"""
@@ -402,36 +439,40 @@ class OWStatsPlugin(Star):
         """守望先锋数据查询"""
         # 显示帮助
         if not subcmd or subcmd in ("help", "帮助"):
-            help_text = """OWStats 命令帮助
+            # 从消息中提取命令前缀
+            msg = event.message_str.strip()
+            prefix = msg.split()[0].rstrip("ow").rstrip("/") + "/" if "ow" in msg else "/"
+            p = f"{prefix}ow"
+            help_text = f"""OWStats 命令帮助
 
 基础查询：
-  ow 资料 [玩家] - 玩家资料图
-  ow 战绩 [玩家] - 近期战绩图
-  ow 详情 [玩家] [序号] - 单场详情图
-  ow 详情 [玩家] [序号] 锐评 - 详情 + AI 锐评
-  ow 开庭 [玩家] [序号] - AI 开庭（审判视角）
-  ow 段位 [玩家] - 段位历史图
-  ow 今日/昨日/周 [玩家] - 总结图
-  ow 强度 [玩家] - 快速强度分析
-  ow 竞技强度 [玩家] - 竞技强度分析
-  ow 同玩 [玩家1] [玩家2] - 同玩查询
+  {p} 资料 [玩家] - 玩家资料图
+  {p} 战绩 [玩家] - 近期战绩图
+  {p} 详情 [玩家] [序号] - 单场详情图
+  {p} 详情 [玩家] [序号] 锐评 - 详情 + AI 锐评
+  {p} 开庭 [玩家] [序号] - AI 开庭（审判视角）
+  {p} 段位 [玩家] - 段位历史图
+  {p} 今日/昨日/周 [玩家] - 总结图
+  {p} 强度 [玩家] - 快速强度分析
+  {p} 竞技强度 [玩家] - 竞技强度分析
+  {p} 同玩 [玩家1] [玩家2] - 同玩查询
 
 排行榜：
-  ow 排行 省榜 [省] [职责] - 省榜排名
-  ow 排行 英雄 [省] [英雄] - 英雄榜单
-  ow 排行 选取率 [模式] - 英雄选取率
+  {p} 排行 省榜 [省] [职责] - 省榜排名
+  {p} 排行 英雄 [省] [英雄] - 英雄榜单
+  {p} 排行 选取率 [模式] - 英雄选取率
 
 绑定管理：
-  ow 绑定 [BattleTag] - 绑定你的 BattleTag
-  ow 解绑 - 解除绑定
-  ow 我的 - 查看绑定信息
+  {p} 绑定 [BattleTag] - 绑定你的 BattleTag
+  {p} 解绑 - 解除绑定
+  {p} 我的 - 查看绑定信息
 
 其他：
-  ow 商店 - 当前商店商品
-  ow 赛事 - OWCS 赛事信息
-  ow 补丁 - 最新补丁说明
+  {p} 商店 - 当前商店商品
+  {p} 赛事 - OWCS 赛事信息
+  {p} 补丁 - 最新补丁说明
 
-提示：已绑定用户可省略玩家参数，如 ow 资料"""
+提示：已绑定用户可省略玩家参数，如 {p} 资料"""
             yield event.plain_result(help_text)
             return
 
@@ -658,16 +699,16 @@ class OWStatsPlugin(Star):
                 parsed["generated_at"] = _time.strftime("%Y-%m-%d %H:%M", _time.localtime())
                 parsed["carry_index_data"] = modules["build_carry_index_data"](match_data)
 
-                focus_player = detail.get("heroList", [{}])[0] if detail.get("heroList") else {}
+                focus_player = match_data.get("heroList", [{}])[0] if match_data.get("heroList") else {}
                 court_image = modules["render_analysis_report"](
                     parsed,
-                    target_hero_images=modules["build_target_hero_icons"](detail.get("heroList", []), size=40),
-                    map_name=modules["map_name_for_match"](detail),
-                    map_icon_img=modules["map_icon_image_for_match"](detail),
-                    match_result="胜利" if detail.get("matchRet") == 1 else "失败",
+                    target_hero_images=modules["build_target_hero_icons"](match_data.get("heroList", []), size=40),
+                    map_name=modules["map_name_for_match"](match_data),
+                    map_icon_img=modules["map_icon_image_for_match"](match_data),
+                    match_result="胜利" if match_data.get("matchRet") == 1 else "失败",
                     footer_source="AI锐评 (Astrbot LLM)",
                 )
-                path = await self._save_temp_image(court_image.to_bytes())
+                path = await self._save_temp_image(court_image.content)
                 yield event.image_result(path)
                 await self._set_ai_cooldown(event)
             else:
@@ -741,13 +782,13 @@ class OWStatsPlugin(Star):
 
             court_image = modules["render_court_report"](
                 parsed,
-                target_hero_images=modules["build_target_hero_icons"](detail.get("heroList", []), size=40),
-                map_name=modules["map_name_for_match"](detail),
-                map_icon_img=modules["map_icon_image_for_match"](detail),
-                match_result="胜利" if detail.get("matchRet") == 1 else "失败",
+                target_hero_images=modules["build_target_hero_icons"](match_data.get("heroList", []), size=40),
+                map_name=modules["map_name_for_match"](match_data),
+                map_icon_img=modules["map_icon_image_for_match"](match_data),
+                match_result="胜利" if match_data.get("matchRet") == 1 else "失败",
                 footer_source="AI开庭 (Astrbot LLM)",
             )
-            path = await self._save_temp_image(court_image.to_bytes())
+            path = await self._save_temp_image(court_image.content)
             yield event.image_result(path)
             await self._set_ai_cooldown(event)
         except Exception as exc:

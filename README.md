@@ -76,6 +76,15 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 | `ai_whitelist` | `[]` | AI 白名单用户列表 |
 | `ai_cooldown_seconds` | `300` | AI 冷却时间（秒） |
 
+## 大神 ROLE_ID 获取
+
+1. 打开大神充值中心：https://pay.ds.163.com/activity/ld5?addSkeleton=1&channel=yydc_cps10.cczx&setId=67b466a5b8cf7e3576aa3521
+2. 确认已登录并绑定战网账号
+3. F12 打开开发者工具 → Network（网络）
+4. Ctrl+F5 强制刷新页面
+5. 在网络请求中搜索 `&role_id`
+6. 复制 `role_id` 后面的数字（如 `114514191`）
+
 ## 大神 Token 获取
 
 1. 打开大神主页 https://ds.163.com/
@@ -143,6 +152,3 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 
 常见问题请参考 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
-## 许可证
-
-MIT License

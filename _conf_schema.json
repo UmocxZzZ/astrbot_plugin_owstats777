@@ -33,7 +33,7 @@
     "description": "默认请求超时（秒）",
     "type": "int",
     "hint": "Overstats API 请求超时时间",
-    "default": 30
+    "default": 60
   },
   "summary_timeout": {
     "description": "周总结请求超时（秒）",

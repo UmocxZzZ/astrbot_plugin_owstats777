@@ -3,9 +3,6 @@ config.personal.py
 config.py
 .env
 
-# 开发文档
-CLAUDE.md
-
 # Python
 __pycache__/
 *.py[cod]
@@ -21,21 +18,30 @@ env/
 *.swp
 *.swo
 
+# Claude Code
+.claude/
+CLAUDE.md
+
 # OS
 .DS_Store
 Thumbs.db
 
 # 构建产物
-release/
-
-# 部署脚本（仅用于服务器部署）
-Overstats/install.sh
-Overstats/uninstall.sh
+*.zip
+*.tar.gz
 
 # 测试数据
 court_image_*.png
 court_result.json
 
-# Astrbot
-Overstats/cache/
+# Overstats 运行时缓存（打包时排除）
+Overstats/res/cache_img/
 Overstats/res/query_tool_assets/
+Overstats/src/modules/dashen_summary/runtime/cache/
+Overstats/ow_guess_assets/
+
+# Overstats 部署脚本
+Overstats/install.sh
+Overstats/uninstall.sh
+Overstats/overstats.service
+
