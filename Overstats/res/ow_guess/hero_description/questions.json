@@ -1,0 +1,691 @@
+[
+    {
+        "question_id":  "hero_description.freja",
+        "difficulty":  1,
+        "hero_name":  "弗蕾娅",
+        "role_name":  "输出",
+        "location":  "哥本哈根，丹麦（前）；不明",
+        "birthday":  "9月6日（年龄：34）",
+        "description":  "过去的搜救干员，如今的赏金猎手，只要价钱到位，没有弗蕾娅找不到的人。",
+        "skill_names":  [
+                            "速射弩",
+                            "瞄准射击",
+                            "疾冲",
+                            "上升气流",
+                            "流星索"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.ashe",
+        "difficulty":  1,
+        "hero_name":  "艾什",
+        "role_name":  "输出",
+        "location":  "美国，新墨西哥州，死局峡谷",
+        "birthday":  "10月1日 （年龄：41）",
+        "description":  "艾什是“死局反叛者”帮派的首脑，她富有野心、精于算计，在江湖上很是吃得开。",
+        "skill_names":  [
+                            "毒蛇",
+                            "短筒猎枪",
+                            "延时雷管",
+                            "召唤鲍勃"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.ana",
+        "difficulty":  1,
+        "hero_name":  "安娜",
+        "role_name":  "支援",
+        "location":  "埃及，开罗",
+        "birthday":  "1月1日 （年龄：62）",
+        "description":  "作为“守望先锋”的创始成员之一，安娜利用她的技巧和专长保护家园和最亲密的人。",
+        "skill_names":  [
+                            "生物步枪",
+                            "麻醉镖",
+                            "生物手雷",
+                            "纳米激素"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.orisa",
+        "difficulty":  1,
+        "hero_name":  "奥丽莎",
+        "role_name":  "重装",
+        "location":  "非洲，努巴尼",
+        "birthday":  "5月9日 （年龄：1）",
+        "description":  "奥丽莎是用在努巴尼昙花一现的OR15防御机器人的零件组装而成的，她是这座城市的新一代守护者，但依然有很多东西需要学习。",
+        "skill_names":  [
+                            "强化聚变驱动器",
+                            "能量标枪",
+                            "强固防御",
+                            "标枪旋击",
+                            "撼地猛刺"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.baptiste",
+        "difficulty":  1,
+        "hero_name":  "巴蒂斯特",
+        "role_name":  "支援",
+        "location":  "海地，托尔图加岛（前）、监测站：直布罗陀",
+        "birthday":  "3月12日 （年龄：38）",
+        "description":  "巴蒂斯特是一位精英战地医疗兵，曾担任“黑爪”特工，但现在的他致力于使用自己的能力帮助那些饱受战火袭扰的人们。",
+        "skill_names":  [
+                            "生化榴弹枪",
+                            "愈合冲击",
+                            "维生力场",
+                            "增幅矩阵",
+                            "动力战靴"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.hanzo",
+        "difficulty":  1,
+        "hero_name":  "半藏",
+        "role_name":  "输出",
+        "location":  "日本，花村（前）",
+        "birthday":  "11月3日 （年龄：40）",
+        "description":  "作为一名箭术和忍术大师，岛田半藏一直都在追求极致完美的技艺以证明自己是最强大的武士。",
+        "skill_names":  [
+                            "风",
+                            "岚",
+                            "音",
+                            "跃",
+                            "竜",
+                            "攀"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.bastion",
+        "difficulty":  1,
+        "hero_name":  "堡垒",
+        "role_name":  "输出",
+        "location":  "瑞典，哥德堡",
+        "birthday":  "未知 （年龄：32）",
+        "description":  "曾在酿成浩劫的智械危机中身为前线战斗单位，充满好奇心的“堡垒”现在成为了一名探险者，被自然之美深深吸引的同时也警惕着人性之恶。",
+        "skill_names":  [
+                            "强攻模式",
+                            "侦察模式",
+                            "A-36战术榴弹",
+                            "切换模式",
+                            "火炮模式"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.brigitte",
+        "difficulty":  1,
+        "hero_name":  "布丽吉塔",
+        "role_name":  "支援",
+        "location":  "瑞典，哥德堡（前）、监测站：直布罗陀",
+        "birthday":  "9月22日 （年龄：25）",
+        "description":  "布丽吉塔·林德霍姆不再置身事外，她拿起武器捍卫那些需要保护的人。",
+        "skill_names":  [
+                            "火箭连枷",
+                            "恢复包",
+                            "流星飞锤",
+                            "屏障护盾",
+                            "能量盾击",
+                            "集结号令",
+                            "鼓舞士气"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.zarya",
+        "difficulty":  1,
+        "hero_name":  "查莉娅",
+        "role_name":  "重装",
+        "location":  "俄罗斯，西伯利亚，新安斯科耶前线基地，克拉斯诺亚尔斯克前线（前）、监测站：直布罗陀",
+        "birthday":  "12月4日 （年龄：30）",
+        "description":  "亚历山德拉·查莉娅诺娃是世界上最强壮的女人之一，也是一位著名的运动健将。在战争期间，为了家人、朋友和祖国，她毅然放弃了个人荣誉。",
+        "skill_names":  [
+                            "粒子炮",
+                            "粒子屏障",
+                            "投射屏障",
+                            "重力喷涌",
+                            "能量转换"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.zenyatta",
+        "difficulty":  1,
+        "hero_name":  "禅雅塔",
+        "role_name":  "支援",
+        "location":  "尼泊尔，香巴里寺院（前）",
+        "birthday":  "7月14日 （年龄：33）",
+        "description":  "禅雅塔是一位游走于世界寻找灵魂启迪之道的智械僧侣。据说任何有幸遇到他的人，其生命轨迹也会发生改变。",
+        "skill_names":  [
+                            "灭",
+                            "乱",
+                            "谐",
+                            "圣",
+                            "蹬"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.dva",
+        "difficulty":  1,
+        "hero_name":  "D.VA",
+        "role_name":  "重装",
+        "location":  "韩国，釜山，MEKA基地（前）、监测站：直布罗陀",
+        "birthday":  "6月22日 （年龄：21）",
+        "description":  "D.VA曾是一名职业玩家，现在则利用自己的技巧驾驶一台尖端机甲保卫国家。",
+        "skill_names":  [
+                            "聚变机炮",
+                            "光枪",
+                            "推进器",
+                            "防御矩阵",
+                            "微型飞弹",
+                            "自毁",
+                            "呼叫机甲",
+                            "弹射！"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.pharah",
+        "difficulty":  1,
+        "hero_name":  "法老之鹰",
+        "role_name":  "输出",
+        "location":  "埃及，吉萨（前）、监测站：直布罗陀",
+        "birthday":  "4月15日 （年龄：34）",
+        "description":  "法芮尔·艾玛莉骨子里就是一个恪守职责的人。她来自一个军功卓越的军人世家，贡献与荣耀就是她最高的追求。",
+        "skill_names":  [
+                            "火箭发射器",
+                            "疾冲背包",
+                            "推进背包",
+                            "震荡冲击",
+                            "火箭弹幕",
+                            "悬浮背包"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.widowmaker",
+        "difficulty":  1,
+        "hero_name":  "黑百合",
+        "role_name":  "输出",
+        "location":  "法国，安纳西",
+        "birthday":  "11月19日 （年龄：35）",
+        "description":  "“黑百合”是一位完美的杀手：耐心、果断、冷酷。没有任何情感且事后毫无悔意。",
+        "skill_names":  [
+                            "黑百合之吻",
+                            "抓钩",
+                            "剧毒诡雷",
+                            "红外侦测"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.sombra",
+        "difficulty":  1,
+        "hero_name":  "黑影",
+        "role_name":  "输出",
+        "location":  "墨西哥，多拉多",
+        "birthday":  "12月31日 （年龄：32）",
+        "description":  "作为全世界最臭名昭著的黑客，“黑影”利用信息与情报操控权贵。",
+        "skill_names":  [
+                            "自动手枪",
+                            "黑客入侵",
+                            "位移传动",
+                            "病毒侵染",
+                            "电磁脉冲"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.hazard",
+        "difficulty":  1,
+        "hero_name":  "骇灾",
+        "role_name":  "重装",
+        "location":  "苏格兰，格拉斯哥（前），不明",
+        "birthday":  "11月11日 （年龄：24）",
+        "description":  "“骇灾”是地下反叛界中一颗冉冉升起的新星，他是激进的破坏分子，是不可阻挡的武器，他的战斗要把秩序拆个粉碎。",
+        "skill_names":  [
+                            "骨刺",
+                            "尖刺护体",
+                            "狂跃",
+                            "尖刺墙",
+                            "千针雨",
+                            "翻越"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.echo",
+        "difficulty":  1,
+        "hero_name":  "回声",
+        "role_name":  "输出",
+        "location":  "瑞士（前）、美国（前）、监测站：直布罗陀",
+        "birthday":  "2月5日 （年龄：14）",
+        "description":  "“回声”是一台多功能适应性机器人，配备有全世界最精密的人工智能，最初由米娜·廖博士为满足“守望先锋”的战斗任务所需而设计。",
+        "skill_names":  [
+                            "三角射击",
+                            "黏性炸弹",
+                            "飞行",
+                            "聚焦光线",
+                            "人格复制",
+                            "滑翔"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.cassidy",
+        "difficulty":  1,
+        "hero_name":  "卡西迪",
+        "role_name":  "输出",
+        "location":  "美国，新墨西哥州，圣达菲（前）、监测站：直布罗陀",
+        "birthday":  "7月31日 （年龄：39）",
+        "description":  "科尔·卡西迪依靠手中值得信赖的“维和者”四处亡命，以自己的方式伸张正义。",
+        "skill_names":  [
+                            "维和者",
+                            "战术翻滚",
+                            "神射手"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.junkrat",
+        "difficulty":  1,
+        "hero_name":  "狂鼠",
+        "role_name":  "输出",
+        "location":  "澳大利亚，渣客镇（前）",
+        "birthday":  "2月29日 （年龄：27）",
+        "description":  "“狂鼠”是一个满脑子都是爆炸的爆破手，只为了混乱和破坏而活。",
+        "skill_names":  [
+                            "榴弹发射器",
+                            "震荡地雷",
+                            "捕兽夹",
+                            "炸弹轮胎",
+                            "临别礼物"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.ramattra",
+        "difficulty":  1,
+        "hero_name":  "拉玛刹",
+        "role_name":  "重装",
+        "location":  "尼泊尔，香巴里寺院（前）",
+        "birthday":  "3月29日 （年龄：28）",
+        "description":  "任何力量都无法阻挡这位“归零者”的冷酷领袖实现他对整个世界的愿景。",
+        "skill_names":  [
+                            "虚空加速器（智械形态）",
+                            "虚空屏障（智械形态）",
+                            "猛拳（天罚形态）",
+                            "吞噬漩涡",
+                            "诛"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.reinhardt",
+        "difficulty":  1,
+        "hero_name":  "莱因哈特",
+        "role_name":  "重装",
+        "location":  "德国，斯图加特（前）、监测站：直布罗陀",
+        "birthday":  "6月26日 （年龄：63）",
+        "description":  "莱因哈特•威尔海姆的行事作风就像一个属于过去的勇士，时刻铭记着骑士的信条：无畏、公正、勇敢。",
+        "skill_names":  [
+                            "火箭重锤",
+                            "冲锋",
+                            "烈焰打击",
+                            "屏障力场",
+                            "裂地猛击"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.tracer",
+        "difficulty":  1,
+        "hero_name":  "猎空",
+        "role_name":  "输出",
+        "location":  "英国，伦敦、监测站：直布罗陀",
+        "birthday":  "2月17日 （年龄：28）",
+        "description":  "前“守望先锋”特工“猎空”是一位可以进行时间跳跃的冒险家，为了正义而不懈努力着。",
+        "skill_names":  [
+                            "脉冲双枪",
+                            "闪现",
+                            "闪回",
+                            "脉冲炸弹"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.lucio",
+        "difficulty":  1,
+        "hero_name":  "卢西奥",
+        "role_name":  "支援",
+        "location":  "巴西，里约热内卢",
+        "birthday":  "3月20日 （年龄：28）",
+        "description":  "卢西奥是一位国际名人，通过音乐和行动激发社会变化。",
+        "skill_names":  [
+                            "音速扩音器",
+                            "切歌",
+                            "强音",
+                            "音波",
+                            "音障",
+                            "滑墙"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.roadhog",
+        "difficulty":  1,
+        "hero_name":  "路霸",
+        "role_name":  "重装",
+        "location":  "澳大利亚，渣客镇（前）",
+        "birthday":  "9月12日 （年龄：50）",
+        "description":  " “路霸”是一个强力打手，因随性肆意的破坏而臭名昭著。",
+        "skill_names":  [
+                            "爆裂枪",
+                            "链钩",
+                            "呼吸器",
+                            "拴猪圈",
+                            "鸡飞狗跳"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.mauga",
+        "difficulty":  1,
+        "hero_name":  "毛加",
+        "role_name":  "重装",
+        "location":  "萨摩亚联合国，阿皮亚",
+        "birthday":  "8月19日 （年龄：37）",
+        "description":  "毛加是一名魅力十足且行事狡黠的萨摩亚战士，他在混乱的战场上如鱼得水，仿佛每一天都是他生命的最后一天。",
+        "skill_names":  [
+                            "蛮力冲撞",
+                            "心脏过载",
+                            "狂战士",
+                            "笼中斗"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.mei",
+        "difficulty":  1,
+        "hero_name":  "美",
+        "role_name":  "输出",
+        "location":  "中国，西安（前）",
+        "birthday":  "9月5日 （年龄：33）",
+        "description":  "美是一名为了保护环境而战的科学家。",
+        "skill_names":  [
+                            "冰霜冲击枪",
+                            "急冻",
+                            "冰墙",
+                            "暴雪"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.doomfist",
+        "difficulty":  1,
+        "hero_name":  "末日铁拳",
+        "role_name":  "重装",
+        "location":  "尼日利亚，奥约（前）、意大利，罗马",
+        "birthday":  "5月25日 （年龄：47）",
+        "description":  "“末日铁拳”身为精明的领袖，率领着恐怖组织兼非法军事集团“黑爪”，与“守望先锋”针锋相对。",
+        "skill_names":  [
+                            "手炮",
+                            "火箭重拳",
+                            "裂地重拳",
+                            "悍猛格挡",
+                            "毁天灭地"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.moira",
+        "difficulty":  1,
+        "hero_name":  "莫伊拉",
+        "role_name":  "支援",
+        "location":  "伊拉克，绿洲城",
+        "birthday":  "4月4日 （年龄：50）",
+        "description":  "科学家莫伊拉·奥德莱恩有着杰出的才华，但她的工作也引起了诸多争议。她是基因工程领域的顶尖专家，研究的方向是如何对生命最基本的单元加以改进。",
+        "skill_names":  [
+                            "生化之触",
+                            "生化之球",
+                            "消散",
+                            "聚合射线"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.wrecking-ball",
+        "difficulty":  1,
+        "hero_name":  "破坏球",
+        "role_name":  "重装",
+        "location":  "“地平线”月球基地（前）、渣客镇",
+        "birthday":  "10月15日 （年龄：16）",
+        "description":  "身为一名机敏十足、智慧过人的机械师兼斗士，来自“地平线”月球基地实验室的“破坏球”成为了“渣客女王”的冠军。\n",
+        "skill_names":  [
+                            "四联火炮",
+                            "工程抓钩",
+                            "动力铁球",
+                            "重力坠击",
+                            "感应护盾",
+                            "地雷禁区"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.lifeweaver",
+        "difficulty":  1,
+        "hero_name":  "生命之梭",
+        "role_name":  "支援",
+        "location":  "大西洋生态城",
+        "birthday":  "4月28日 （年龄：31）",
+        "description":  "这位天才将植物物质与高强度光束结合在一起，创造了生物光束技术。治愈世界是他的梦想。",
+        "skill_names":  [
+                            "愈疗灵花",
+                            "棘刺箭雨",
+                            "花瓣平台",
+                            "回春疾行",
+                            "生命之握",
+                            "生命之树"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.soldier-76",
+        "difficulty":  1,
+        "hero_name":  "士兵：76",
+        "role_name":  "输出",
+        "location":  "不明",
+        "birthday":  "1月27日 （年龄：58）",
+        "description":  "被全球通缉的蒙面义警“士兵：76”独自一人发动了一场旨在查出“守望先锋”解散真相的战争。",
+        "skill_names":  [
+                            "重型脉冲步枪",
+                            "疾跑",
+                            "生物力场",
+                            "螺旋飞弹",
+                            "战术目镜"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.reaper",
+        "difficulty":  1,
+        "hero_name":  "死神",
+        "role_name":  "输出",
+        "location":  "意大利，罗马",
+        "birthday":  "12月14日 （年龄：60）",
+        "description":  "关于这个黑袍恐怖分子的传闻并不多，只知道大家都称他为“死神”。虽然没人知道他的真实身份和动机，但有一点是可以肯定的，他的出现意味着死亡。",
+        "skill_names":  [
+                            "地狱火霰弹枪",
+                            "暗影步",
+                            "幽灵形态",
+                            "死亡绽放",
+                            "收割"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.sojourn",
+        "difficulty":  1,
+        "hero_name":  "索杰恩",
+        "role_name":  "输出",
+        "location":  "加拿大，多伦多",
+        "birthday":  "1月12日 （年龄：51）",
+        "description":  "“守望先锋”昔日的领导者维维安·蔡斯，代号“索杰恩”，决心要让守望先锋的新英雄不再重蹈覆辙。",
+        "skill_names":  [
+                            "电磁炮",
+                            "机动滑铲",
+                            "干扰弹",
+                            "机体超频"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.venture",
+        "difficulty":  1,
+        "hero_name":  "探奇",
+        "role_name":  "输出",
+        "location":  "加拿大，新斯科舍（前）、居无定所 ",
+        "birthday":  "8月6日 （年龄：26）",
+        "description":  "“探奇”是一位周游世界的考古学家兼探险家，对解开种种历史谜团极富热情。",
+        "skill_names":  [
+                            "智能挖掘钻",
+                            "钻头突刺",
+                            "钻地",
+                            "地壳震击"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.mercy",
+        "difficulty":  1,
+        "hero_name":  "天使",
+        "role_name":  "支援",
+        "location":  "瑞士，苏黎世（前）、监测站：直布罗陀",
+        "birthday":  "5月13日 （年龄：39）",
+        "description":  "作为所有伤者的守护天使，安吉拉·齐格勒博士是一名顶尖的治疗者、出色的科学家和坚定的和平主义者。",
+        "skill_names":  [
+                            "天使之杖",
+                            "天使冲击枪",
+                            "守护天使",
+                            "重生",
+                            "天使降临",
+                            "女武神"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.torbjorn",
+        "difficulty":  1,
+        "hero_name":  "托比昂",
+        "role_name":  "输出",
+        "location":  "瑞典，哥德堡",
+        "birthday":  "9月21日 （年龄：59）",
+        "description":  "巅峰时期的“守望先锋”，拥有世界上最顶尖的武器设备，而这些武器都出自一位名叫托比昂·林德霍姆的天才工程师之手。",
+        "skill_names":  [
+                            "铆钉枪",
+                            "锻造锤",
+                            "部署炮台",
+                            "热力过载",
+                            "熔火核心"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.winston",
+        "difficulty":  1,
+        "hero_name":  "温斯顿",
+        "role_name":  "重装",
+        "location":  "“地平线”月球基地（前）、监测站：直布罗陀",
+        "birthday":  "6月6日 （年龄：31）",
+        "description":  "作为一只拥有高等智慧并被基因改造的大猩猩，温斯顿无疑是一位出色的科学家和代表着人类潜力的勇士。",
+        "skill_names":  [
+                            "特斯拉炮",
+                            "喷射背包",
+                            "屏障发射器",
+                            "原始暴怒"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.kiriko",
+        "difficulty":  1,
+        "hero_name":  "雾子",
+        "role_name":  "支援",
+        "location":  "日本，铁坂",
+        "birthday":  "7月7日 （年龄：21）",
+        "description":  "身为铁坂神社的巫女，以及岛田家族前剑术师傅的女儿，家守雾子运用自己的灵魂之力和忍者技艺治愈她分崩离析的城市。",
+        "skill_names":  [
+                            "符",
+                            "锥",
+                            "瞬",
+                            "铃",
+                            "狐"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.sigma",
+        "difficulty":  1,
+        "hero_name":  "西格玛",
+        "role_name":  "重装",
+        "location":  "荷兰，海牙（前）、国际空间站（前）",
+        "birthday":  "3月15日 （年龄：64）",
+        "description":  "希尔伯伦·德·柯伊伯博士曾是一名杰出的天体物理学家，一场实验事故给了他控制引力的能力，也彻底改变了他的生活。现在，“黑爪”通过操控他来达到自己的目的。",
+        "skill_names":  [
+                            "超能之球",
+                            "动能俘获",
+                            "质量吸附",
+                            "实验屏障",
+                            "引力乱流"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.illari",
+        "difficulty":  1,
+        "hero_name":  "伊拉锐",
+        "role_name":  "支援",
+        "location":  "秘鲁，鲁纳塞彼",
+        "birthday":  "12月21日 （年龄：18）",
+        "description":  "体内充盈着太阳之力的伊拉锐是最后的印蒂勇士。为了弥补过去的惨剧，她愿不惜一切代价。",
+        "skill_names":  [
+                            "阳焰步枪",
+                            "桎梏灼日",
+                            "治疗光塔",
+                            "烈日冲击"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.genji",
+        "difficulty":  1,
+        "hero_name":  "源氏",
+        "role_name":  "输出",
+        "location":  "日本，花村（前）、尼泊尔，香巴里寺院（前）、监测站：直布罗陀",
+        "birthday":  "10月28日 （年龄：37）",
+        "description":  "半机械人岛田源氏已经接受了他曾经排斥的强化躯体，并因此发现了更高境界的人性。",
+        "skill_names":  [
+                            "镖",
+                            "闪",
+                            "影",
+                            "斩",
+                            "灵"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.junker-queen",
+        "difficulty":  1,
+        "hero_name":  "渣客女王",
+        "role_name":  "重装",
+        "location":  "澳大利亚，渣客镇",
+        "birthday":  "6月14日 （年龄：31）",
+        "description":  "有大斧“血斩”和电磁拳套在手，这位残酷的渣客领袖志在统治整个世界。",
+        "skill_names":  [
+                            "散弹枪",
+                            "锯齿利刃",
+                            "命令怒吼",
+                            "血斩",
+                            "轰翻天",
+                            "狂血奔涌"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.symmetra",
+        "difficulty":  1,
+        "hero_name":  "秩序之光",
+        "role_name":  "输出",
+        "location":  "印度，乌托邦",
+        "birthday":  "10月2日 （年龄：30）",
+        "description":  "“秩序之光”可以在真正意义上扭曲现实。通过控制高强度光束，她可以将世界改造成自己想象中的模样，实现一个完美的社会。",
+        "skill_names":  [
+                            "光子发射器",
+                            "哨戒炮",
+                            "传送面板",
+                            "光子屏障"
+                        ]
+    },
+    {
+        "question_id":  "hero_description.juno",
+        "difficulty":  1,
+        "hero_name":  "朱诺",
+        "role_name":  "支援",
+        "location":  "火星，朱诺基地（前）、监测站：直布罗陀",
+        "birthday":  "3月22日 (年龄: 19)",
+        "description":  "身为第一位出生在火星上的人类，每当问题进入朱诺的轨道，她都会用太空时代的科技将其一一化解。她下定决心，总有一天要拯救她的母星。",
+        "skill_names":  [
+                            "医疗冲击枪",
+                            "脉冲星飞雷",
+                            "轨道射线",
+                            "超能环域",
+                            "滑翔推进",
+                            "火星套靴"
+                        ]
+    }
+]

@@ -1,0 +1,260 @@
+﻿[
+    {
+        "question_id":  "skill_icon_name.D.Va",
+        "difficulty":  4,
+        "hero_name":  "D.Va",
+        "pool_dir":  "../shared/hero_icons/D.Va/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.艾什",
+        "difficulty":  4,
+        "hero_name":  "艾什",
+        "pool_dir":  "../shared/hero_icons/艾什/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.安娜",
+        "difficulty":  4,
+        "hero_name":  "安娜",
+        "pool_dir":  "../shared/hero_icons/安娜/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.奥丽莎",
+        "difficulty":  4,
+        "hero_name":  "奥丽莎",
+        "pool_dir":  "../shared/hero_icons/奥丽莎/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.巴蒂斯特",
+        "difficulty":  4,
+        "hero_name":  "巴蒂斯特",
+        "pool_dir":  "../shared/hero_icons/巴蒂斯特/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.半藏",
+        "difficulty":  4,
+        "hero_name":  "半藏",
+        "pool_dir":  "../shared/hero_icons/半藏/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.堡垒",
+        "difficulty":  4,
+        "hero_name":  "堡垒",
+        "pool_dir":  "../shared/hero_icons/堡垒/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.布丽吉塔",
+        "difficulty":  4,
+        "hero_name":  "布丽吉塔",
+        "pool_dir":  "../shared/hero_icons/布丽吉塔/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.查莉娅",
+        "difficulty":  4,
+        "hero_name":  "查莉娅",
+        "pool_dir":  "../shared/hero_icons/查莉娅/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.禅雅塔",
+        "difficulty":  4,
+        "hero_name":  "禅雅塔",
+        "pool_dir":  "../shared/hero_icons/禅雅塔/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.法老之鹰",
+        "difficulty":  4,
+        "hero_name":  "法老之鹰",
+        "pool_dir":  "../shared/hero_icons/法老之鹰/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.弗蕾娅",
+        "difficulty":  4,
+        "hero_name":  "弗蕾娅",
+        "pool_dir":  "../shared/hero_icons/弗蕾娅/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.骇灾",
+        "difficulty":  4,
+        "hero_name":  "骇灾",
+        "pool_dir":  "../shared/hero_icons/骇灾/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.黑百合",
+        "difficulty":  4,
+        "hero_name":  "黑百合",
+        "pool_dir":  "../shared/hero_icons/黑百合/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.黑影",
+        "difficulty":  4,
+        "hero_name":  "黑影",
+        "pool_dir":  "../shared/hero_icons/黑影/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.回声",
+        "difficulty":  4,
+        "hero_name":  "回声",
+        "pool_dir":  "../shared/hero_icons/回声/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.卡西迪",
+        "difficulty":  4,
+        "hero_name":  "卡西迪",
+        "pool_dir":  "../shared/hero_icons/卡西迪/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.狂鼠",
+        "difficulty":  4,
+        "hero_name":  "狂鼠",
+        "pool_dir":  "../shared/hero_icons/狂鼠/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.拉玛刹",
+        "difficulty":  4,
+        "hero_name":  "拉玛刹",
+        "pool_dir":  "../shared/hero_icons/拉玛刹/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.莱因哈特",
+        "difficulty":  4,
+        "hero_name":  "莱因哈特",
+        "pool_dir":  "../shared/hero_icons/莱因哈特/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.猎空",
+        "difficulty":  4,
+        "hero_name":  "猎空",
+        "pool_dir":  "../shared/hero_icons/猎空/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.卢西奥",
+        "difficulty":  4,
+        "hero_name":  "卢西奥",
+        "pool_dir":  "../shared/hero_icons/卢西奥/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.路霸",
+        "difficulty":  4,
+        "hero_name":  "路霸",
+        "pool_dir":  "../shared/hero_icons/路霸/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.毛加",
+        "difficulty":  4,
+        "hero_name":  "毛加",
+        "pool_dir":  "../shared/hero_icons/毛加/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.美",
+        "difficulty":  4,
+        "hero_name":  "美",
+        "pool_dir":  "../shared/hero_icons/美/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.末日铁拳",
+        "difficulty":  4,
+        "hero_name":  "末日铁拳",
+        "pool_dir":  "../shared/hero_icons/末日铁拳/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.莫伊拉",
+        "difficulty":  4,
+        "hero_name":  "莫伊拉",
+        "pool_dir":  "../shared/hero_icons/莫伊拉/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.破坏球",
+        "difficulty":  4,
+        "hero_name":  "破坏球",
+        "pool_dir":  "../shared/hero_icons/破坏球/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.生命之梭",
+        "difficulty":  4,
+        "hero_name":  "生命之梭",
+        "pool_dir":  "../shared/hero_icons/生命之梭/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.士兵：76",
+        "difficulty":  4,
+        "hero_name":  "士兵：76",
+        "pool_dir":  "../shared/hero_icons/士兵：76/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.死神",
+        "difficulty":  4,
+        "hero_name":  "死神",
+        "pool_dir":  "../shared/hero_icons/死神/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.索杰恩",
+        "difficulty":  4,
+        "hero_name":  "索杰恩",
+        "pool_dir":  "../shared/hero_icons/索杰恩/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.探奇",
+        "difficulty":  4,
+        "hero_name":  "探奇",
+        "pool_dir":  "../shared/hero_icons/探奇/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.天使",
+        "difficulty":  4,
+        "hero_name":  "天使",
+        "pool_dir":  "../shared/hero_icons/天使/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.托比昂",
+        "difficulty":  4,
+        "hero_name":  "托比昂",
+        "pool_dir":  "../shared/hero_icons/托比昂/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.温斯顿",
+        "difficulty":  4,
+        "hero_name":  "温斯顿",
+        "pool_dir":  "../shared/hero_icons/温斯顿/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.雾子",
+        "difficulty":  4,
+        "hero_name":  "雾子",
+        "pool_dir":  "../shared/hero_icons/雾子/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.西格玛",
+        "difficulty":  4,
+        "hero_name":  "西格玛",
+        "pool_dir":  "../shared/hero_icons/西格玛/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.伊拉锐",
+        "difficulty":  4,
+        "hero_name":  "伊拉锐",
+        "pool_dir":  "../shared/hero_icons/伊拉锐/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.源氏",
+        "difficulty":  4,
+        "hero_name":  "源氏",
+        "pool_dir":  "../shared/hero_icons/源氏/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.渣客女王",
+        "difficulty":  4,
+        "hero_name":  "渣客女王",
+        "pool_dir":  "../shared/hero_icons/渣客女王/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.秩序之光",
+        "difficulty":  4,
+        "hero_name":  "秩序之光",
+        "pool_dir":  "../shared/hero_icons/秩序之光/Abilities"
+    },
+    {
+        "question_id":  "skill_icon_name.朱诺",
+        "difficulty":  4,
+        "hero_name":  "朱诺",
+        "pool_dir":  "../shared/hero_icons/朱诺/Abilities"
+    }
+]

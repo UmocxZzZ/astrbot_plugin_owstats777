@@ -1,0 +1,497 @@
+[
+    {
+        "question_id":  "map_music.1",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "havana.mp3",
+        "answer":  [
+                       "哈瓦那",
+                       "havana"
+                   ]
+    },
+    {
+        "question_id":  "map_music.2",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "ilios.mp3",
+        "answer":  [
+                       "伊利奥斯",
+                       "ilios"
+                   ]
+    },
+    {
+        "question_id":  "map_music.3",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "busan.mp3",
+        "answer":  [
+                       "釜山",
+                       "busan"
+                   ]
+    },
+    {
+        "question_id":  "map_music.4",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "blizzard_world.mp3",
+        "answer":  [
+                       "暴雪世界",
+                       "blizzard_world"
+                   ]
+    },
+    {
+        "question_id":  "map_music.5",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "rialto.mp3",
+        "answer":  [
+                       "里阿尔托",
+                       "rialto"
+                   ]
+    },
+    {
+        "question_id":  "map_music.6",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "oasis.mp3",
+        "answer":  [
+                       "绿洲城",
+                       "oasis"
+                   ]
+    },
+    {
+        "question_id":  "map_music.7",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "busan2.mp3",
+        "answer":  [
+                       "釜山",
+                       "busan"
+                   ]
+    },
+    {
+        "question_id":  "map_music.8",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "kings_row.mp3",
+        "answer":  [
+                       "国王大道",
+                       "kings_row"
+                   ]
+    },
+    {
+        "question_id":  "map_music.9",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "nepal.mp3",
+        "answer":  [
+                       "尼泊尔",
+                       "nepal"
+                   ]
+    },
+    {
+        "question_id":  "map_music.10",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "hollywood.mp3",
+        "answer":  [
+                       "好莱坞",
+                       "hollywood"
+                   ]
+    },
+    {
+        "question_id":  "map_music.11",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "route66.mp3",
+        "answer":  [
+                       "66号公路",
+                       "route66",
+                       "66公路"
+                   ]
+    },
+    {
+        "question_id":  "map_music.12",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "ayutthaya.mp3",
+        "answer":  [
+                       "阿育陀耶",
+                       "ayutthaya"
+                   ]
+    },
+    {
+        "question_id":  "map_music.13",
+        "difficulty":  4,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "lijiang_tower.mp3",
+        "answer":  [
+                       "漓江塔",
+                       "lijiang_tower"
+                   ]
+    },
+    {
+        "question_id":  "map_music.14",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "paris.mp3",
+        "answer":  [
+                       "巴黎",
+                       "paris"
+                   ]
+    },
+    {
+        "question_id":  "map_music.15",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "numbani.mp3",
+        "answer":  [
+                       "努巴尼",
+                       "numbani"
+                   ]
+    },
+    {
+        "question_id":  "map_music.16",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "temple_anubis.mp3",
+        "answer":  [
+                       "阿努比斯神殿",
+                       "temple_anubis",
+                       "阿努比斯王座"
+                   ]
+    },
+    {
+        "question_id":  "map_music.17",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "dorado.mp3",
+        "answer":  [
+                       "多拉多",
+                       "dorado"
+                   ]
+    },
+    {
+        "question_id":  "map_music.18",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "dorado2.mp3",
+        "answer":  [
+                       "多拉多",
+                       "dorado"
+                   ]
+    },
+    {
+        "question_id":  "map_music.20",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "ek.mp3",
+        "answer":  [
+                       "艾兴瓦尔德",
+                       "ek"
+                   ]
+    },
+    {
+        "question_id":  "map_music.21",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "ek2.mp3",
+        "answer":  [
+                       "艾兴瓦尔德",
+                       "ek2"
+                   ]
+    },
+    {
+        "question_id":  "map_music.22",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "voskaya.mp3",
+        "answer":  [
+                       "沃斯卡娅工业区",
+                       "voskaya"
+                   ]
+    },
+    {
+        "question_id":  "map_music.23",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "hanamura.mp3",
+        "answer":  [
+                       "花村",
+                       "hanamura",
+                       "花冈"
+                   ]
+    },
+    {
+        "question_id":  "map_music.24",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "kings_row2.mp3",
+        "answer":  [
+                       "国王大道",
+                       "kings_row"
+                   ]
+    },
+    {
+        "question_id":  "map_music.25",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "hollywood2.mp3",
+        "answer":  [
+                       "好莱坞",
+                       "hollywood"
+                   ]
+    },
+    {
+        "question_id":  "map_music.26",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "temple_anubis2.mp3",
+        "answer":  [
+                       "阿努比斯神殿",
+                       "temple_anubis",
+                       "阿努比斯王座"
+                   ]
+    },
+    {
+        "question_id":  "map_music.27",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "ilios2.mp3",
+        "answer":  [
+                       "伊利奥斯",
+                       "ilios"
+                   ]
+    },
+    {
+        "question_id":  "map_music.28",
+        "difficulty":  4,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "lijiang_tower2.mp3",
+        "answer":  [
+                       "漓江塔",
+                       "lijiang_tower"
+                   ]
+    },
+    {
+        "question_id":  "map_music.29",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "blizzard_world2.mp3",
+        "answer":  [
+                       "暴雪世界",
+                       "blizzard_world"
+                   ]
+    },
+    {
+        "question_id":  "map_music.30",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "junkertown.mp3",
+        "answer":  [
+                       "渣客镇",
+                       "junkertown"
+                   ]
+    },
+    {
+        "question_id":  "map_music.31",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "paraiso.ogg",
+        "answer":  [
+                       "帕拉伊苏",
+                       "paraiso"
+                   ]
+    },
+    {
+        "question_id":  "map_music.32",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Circuit_Royal_Theme_1.ogg",
+        "answer":  [
+                       "皇家赛道",
+                       "circuit_royal"
+                   ]
+    },
+    {
+        "question_id":  "map_music.33",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Circuit_Royal_Theme_2.ogg",
+        "answer":  [
+                       "皇家赛道",
+                       "circuit_royal"
+                   ]
+    },
+    {
+        "question_id":  "map_music.34",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Shambali_Monastery_Theme_1.ogg",
+        "answer":  [
+                       "香巴里寺院",
+                       "Shambali"
+                   ]
+    },
+    {
+        "question_id":  "map_music.35",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Midtown_Theme_1.ogg",
+        "answer":  [
+                       "中城",
+                       "midtown"
+                   ]
+    },
+    {
+        "question_id":  "map_music.36",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Midtown_Theme_2.ogg",
+        "answer":  [
+                       "中城",
+                       "midtown"
+                   ]
+    },
+    {
+        "question_id":  "map_music.37",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Antarctic_Peninsula_Theme_1.ogg",
+        "answer":  [
+                       "南极半岛",
+                       "antarctic_peninsula"
+                   ]
+    },
+    {
+        "question_id":  "map_music.38",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Samoa_Theme_1.ogg",
+        "answer":  [
+                       "萨摩亚",
+                       "Samoa"
+                   ]
+    },
+    {
+        "question_id":  "map_music.39",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Colosseo_Theme_1.ogg",
+        "answer":  [
+                       "斗兽场",
+                       "colosseo"
+                   ]
+    },
+    {
+        "question_id":  "map_music.40",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Colosseo_Theme_2.ogg",
+        "answer":  [
+                       "斗兽场",
+                       "colosseo"
+                   ]
+    },
+    {
+        "question_id":  "map_music.41",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Esperanca_Theme_1.ogg",
+        "answer":  [
+                       "埃斯佩兰萨",
+                       "esperanca"
+                   ]
+    },
+    {
+        "question_id":  "map_music.42",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Esperanca_Theme_2.ogg",
+        "answer":  [
+                       "埃斯佩兰萨",
+                       "esperanca"
+                   ]
+    },
+    {
+        "question_id":  "map_music.43",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "New_Queen_Street_Theme_1.ogg",
+        "answer":  [
+                       "新皇后街",
+                       "new_queen_street"
+                   ]
+    },
+    {
+        "question_id":  "map_music.44",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "New_Queen_Street_Theme_2.ogg",
+        "answer":  [
+                       "新皇后街",
+                       "new_queen_street"
+                   ]
+    },
+    {
+        "question_id":  "map_music.45",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Runasapi_Theme_1.ogg",
+        "answer":  [
+                       "鲁纳塞彼",
+                       "runasapi"
+                   ]
+    },
+    {
+        "question_id":  "map_music.46",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Runasapi_Theme_2.ogg",
+        "answer":  [
+                       "鲁纳塞彼",
+                       "runasapi"
+                   ]
+    },
+    {
+        "question_id":  "map_music.47",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "New_Junk_City_Theme.ogg",
+        "answer":  [
+                       "新渣客城",
+                       "new_junk_city"
+                   ]
+    },
+    {
+        "question_id":  "map_music.48",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Suravasa_Theme_1.ogg",
+        "answer":  [
+                       "苏拉瓦萨",
+                       "suravasa"
+                   ]
+    },
+    {
+        "question_id":  "map_music.49",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Horizon_Lunar_Colony_Theme_1.ogg",
+        "answer":  [
+                       "“地平线”月球基地",
+                       "地平线月球基地",
+                       "月球基地"
+                   ]
+    },
+    {
+        "question_id":  "map_music.50",
+        "difficulty":  3,
+        "prompt_text":  "听一听下面的音频片段，猜猜这段音频来自于哪张地图?",
+        "audio_file":  "Kanezaka_Theme_1.ogg",
+        "answer":  [
+                       "铁坂",
+                       "kanezaka"
+                   ]
+    }
+]

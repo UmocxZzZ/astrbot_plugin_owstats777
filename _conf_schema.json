@@ -1,0 +1,62 @@
+{
+  "embedded_overstats": {
+    "description": "内置 Overstats 服务",
+    "type": "bool",
+    "hint": "启用后插件会自动启动 Overstats 服务，无需外部部署",
+    "default": true
+  },
+  "overstats_port": {
+    "description": "Overstats 服务端口",
+    "type": "int",
+    "hint": "内置 Overstats 服务监听端口",
+    "default": 18080
+  },
+  "overstats_url": {
+    "description": "Overstats 服务地址",
+    "type": "string",
+    "hint": "外部 Overstats 服务地址，仅在内置服务关闭时使用",
+    "default": "http://127.0.0.1:18080"
+  },
+  "dashen_role_id": {
+    "description": "大神 role_id",
+    "type": "string",
+    "hint": "从大神充值中心 F12 抓取",
+    "default": ""
+  },
+  "dashen_token": {
+    "description": "大神 token",
+    "type": "string",
+    "hint": "在大神主页 F12 控制台运行脚本获取",
+    "default": ""
+  },
+  "default_timeout": {
+    "description": "默认请求超时（秒）",
+    "type": "int",
+    "hint": "Overstats API 请求超时时间",
+    "default": 60
+  },
+  "summary_timeout": {
+    "description": "周总结请求超时（秒）",
+    "type": "int",
+    "hint": "周总结数据量大，建议 90 秒以上",
+    "default": 90
+  },
+  "ai_timeout": {
+    "description": "AI 锐评/开庭请求超时（秒）",
+    "type": "int",
+    "hint": "AI 生成需要较长时间，建议 180 秒",
+    "default": 180
+  },
+  "ai_whitelist": {
+    "description": "AI 锐评/开庭白名单用户",
+    "type": "list",
+    "hint": "白名单用户 ID 列表，无冷却限制。格式如：aiocqhttp:123456",
+    "default": []
+  },
+  "ai_cooldown_seconds": {
+    "description": "AI 锐评冷却时间（秒）",
+    "type": "int",
+    "hint": "普通用户两次使用 AI 锐评/开庭的最小间隔",
+    "default": 300
+  }
+}

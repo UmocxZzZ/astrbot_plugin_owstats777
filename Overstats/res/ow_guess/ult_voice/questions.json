@@ -1,0 +1,305 @@
+﻿[
+    {
+        "question_id":  "ult_voice.D.va",
+        "difficulty":  1,
+        "hero_name":  "D.va",
+        "audio_file":  "D.va.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.艾什",
+        "difficulty":  1,
+        "hero_name":  "艾什",
+        "audio_file":  "艾什.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.安娜",
+        "difficulty":  1,
+        "hero_name":  "安娜",
+        "audio_file":  "安娜.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.奥丽莎",
+        "difficulty":  1,
+        "hero_name":  "奥丽莎",
+        "audio_file":  "奥丽莎.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.巴蒂斯特",
+        "difficulty":  1,
+        "hero_name":  "巴蒂斯特",
+        "audio_file":  "巴蒂斯特.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.半藏",
+        "difficulty":  1,
+        "hero_name":  "半藏",
+        "audio_file":  "半藏.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.堡垒",
+        "difficulty":  1,
+        "hero_name":  "堡垒",
+        "audio_file":  "堡垒.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.布丽吉塔",
+        "difficulty":  1,
+        "hero_name":  "布丽吉塔",
+        "audio_file":  "布丽吉塔.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.查莉娅",
+        "difficulty":  1,
+        "hero_name":  "查莉娅",
+        "audio_file":  "查莉娅.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.禅雅塔",
+        "difficulty":  1,
+        "hero_name":  "禅雅塔",
+        "audio_file":  "禅雅塔.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.法老之鹰",
+        "difficulty":  1,
+        "hero_name":  "法老之鹰",
+        "audio_file":  "法老之鹰.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.弗蕾娅",
+        "difficulty":  1,
+        "hero_name":  "弗蕾娅",
+        "audio_file":  "弗蕾娅.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.骇灾",
+        "difficulty":  1,
+        "hero_name":  "骇灾",
+        "audio_file":  "骇灾.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.黑百合",
+        "difficulty":  1,
+        "hero_name":  "黑百合",
+        "audio_file":  "黑百合.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.黑影",
+        "difficulty":  1,
+        "hero_name":  "黑影",
+        "audio_file":  "黑影.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.回声",
+        "difficulty":  1,
+        "hero_name":  "回声",
+        "audio_file":  "回声.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.卡西迪",
+        "difficulty":  1,
+        "hero_name":  "卡西迪",
+        "audio_file":  "卡西迪.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.狂鼠",
+        "difficulty":  1,
+        "hero_name":  "狂鼠",
+        "audio_file":  "狂鼠.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.拉玛刹",
+        "difficulty":  1,
+        "hero_name":  "拉玛刹",
+        "audio_file":  "拉玛刹.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.莱因哈特",
+        "difficulty":  1,
+        "hero_name":  "莱因哈特",
+        "audio_file":  "莱因哈特.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.猎空",
+        "difficulty":  1,
+        "hero_name":  "猎空",
+        "audio_file":  "猎空.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.卢西奥",
+        "difficulty":  1,
+        "hero_name":  "卢西奥",
+        "audio_file":  "卢西奥.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.路霸",
+        "difficulty":  1,
+        "hero_name":  "路霸",
+        "audio_file":  "路霸.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.毛加",
+        "difficulty":  1,
+        "hero_name":  "毛加",
+        "audio_file":  "毛加.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.美",
+        "difficulty":  1,
+        "hero_name":  "美",
+        "audio_file":  "美.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.末日铁拳",
+        "difficulty":  1,
+        "hero_name":  "末日铁拳",
+        "audio_file":  "末日铁拳.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.莫伊拉",
+        "difficulty":  1,
+        "hero_name":  "莫伊拉",
+        "audio_file":  "莫伊拉.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.破坏球",
+        "difficulty":  1,
+        "hero_name":  "破坏球",
+        "audio_file":  "破坏球.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.生命之梭",
+        "difficulty":  1,
+        "hero_name":  "生命之梭",
+        "audio_file":  "生命之梭.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.士兵：76",
+        "difficulty":  1,
+        "hero_name":  "士兵：76",
+        "audio_file":  "士兵：76.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.死神",
+        "difficulty":  1,
+        "hero_name":  "死神",
+        "audio_file":  "死神.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.索杰恩",
+        "difficulty":  1,
+        "hero_name":  "索杰恩",
+        "audio_file":  "索杰恩.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.探奇",
+        "difficulty":  1,
+        "hero_name":  "探奇",
+        "audio_file":  "探奇.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.天使",
+        "difficulty":  1,
+        "hero_name":  "天使",
+        "audio_file":  "天使.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.托比昂",
+        "difficulty":  1,
+        "hero_name":  "托比昂",
+        "audio_file":  "托比昂.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.温斯顿",
+        "difficulty":  1,
+        "hero_name":  "温斯顿",
+        "audio_file":  "温斯顿.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.雾子",
+        "difficulty":  1,
+        "hero_name":  "雾子",
+        "audio_file":  "雾子.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.西格玛",
+        "difficulty":  1,
+        "hero_name":  "西格玛",
+        "audio_file":  "西格玛.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.伊拉锐",
+        "difficulty":  1,
+        "hero_name":  "伊拉锐",
+        "audio_file":  "伊拉锐.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.源氏",
+        "difficulty":  1,
+        "hero_name":  "源氏",
+        "audio_file":  "源氏.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.渣客女王",
+        "difficulty":  1,
+        "hero_name":  "渣客女王",
+        "audio_file":  "渣客女王.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.秩序之光",
+        "difficulty":  1,
+        "hero_name":  "秩序之光",
+        "audio_file":  "秩序之光.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    },
+    {
+        "question_id":  "ult_voice.朱诺",
+        "difficulty":  1,
+        "hero_name":  "朱诺",
+        "audio_file":  "朱诺.ogg",
+        "prompt_text":  "请尝试猜出终极技能对应的英雄"
+    }
+]
+
+

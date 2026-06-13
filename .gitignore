@@ -1,0 +1,47 @@
+# 个人配置（包含敏感信息）
+config.personal.py
+config.py
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 构建产物
+*.zip
+*.tar.gz
+
+# 测试数据
+court_image_*.png
+court_result.json
+
+# Overstats 运行时缓存（打包时排除）
+Overstats/res/cache_img/
+Overstats/res/query_tool_assets/
+Overstats/src/modules/dashen_summary/runtime/cache/
+Overstats/ow_guess_assets/
+
+# Overstats 部署脚本
+Overstats/install.sh
+Overstats/uninstall.sh
+Overstats/overstats.service
+
