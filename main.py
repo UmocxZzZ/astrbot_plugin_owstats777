@@ -699,6 +699,11 @@ class OWStatsPlugin(Star):
         except ValueError:
             yield event.plain_result("序号必须是数字。")
             return
+        if index < 1:
+            yield event.plain_result("序号必须大于等于 1（1 表示最近一场）。")
+            return
+        # 转换为 0-based 索引给 Overstats
+        index = index - 1
 
         if analyze:
             ok, remaining = await self._check_ai_cooldown(event)
@@ -782,6 +787,11 @@ class OWStatsPlugin(Star):
         except ValueError:
             yield event.plain_result("序号必须是数字。")
             return
+        if index < 1:
+            yield event.plain_result("序号必须大于等于 1（1 表示最近一场）。")
+            return
+        # 转换为 0-based 索引给 Overstats
+        index = index - 1
 
         ok, remaining = await self._check_ai_cooldown(event)
         if not ok:
