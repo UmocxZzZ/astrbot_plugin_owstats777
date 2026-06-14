@@ -133,9 +133,19 @@ class OWStatsPlugin(Star):
         if self._overstats_server:
             try:
                 self._overstats_server.shutdown()
+                self._overstats_server.server_close()
                 logger.info("Overstats 内置服务已停止")
             except Exception as e:
                 logger.error(f"停止 Overstats 服务失败: {e}")
+
+        # 等待服务线程完全退出
+        if self._overstats_thread and self._overstats_thread.is_alive():
+            self._overstats_thread.join(timeout=5)
+
+        # 清除 Overstats 模块缓存，确保热重载时重新加载
+        for mod_name in list(sys.modules.keys()):
+            if mod_name.startswith(("config", "src", "overstats")):
+                del sys.modules[mod_name]
 
     # ======================== AI 分析方法 ========================
 
@@ -424,9 +434,45 @@ class OWStatsPlugin(Star):
         elif isinstance(exc, httpx.HTTPStatusError):
             try:
                 err = exc.response.json()
-                msg = err.get("message", str(exc))
+                msg = err.get("message", "")
                 hint = err.get("hint", "")
-                yield event.plain_result(f"请求失败：{msg}\n{hint}" if hint else f"请求失败：{msg}")
+                details = err.get("details", {})
+                error_code = err.get("error", "")
+
+                # 从 details 中提取更具体的错误信息
+                if not msg or msg == "Internal server error. See details.":
+                    detail_msg = details.get("message", "")
+                    detail_exc = details.get("exception", "")
+                    if detail_msg:
+                        msg = detail_msg
+                    elif detail_exc:
+                        msg = f"服务内部异常：{detail_exc}"
+
+                # 已知错误码：替换英文消息为中文提示
+                error_messages = {
+                    "bnet_not_found": "未找到该玩家，请检查 BattleTag 是否正确（区分大小写，如 Player#12345）",
+                    "invalid_json": "请求格式错误",
+                    "missing_target": "请提供 BattleTag 或先绑定",
+                    "missing_match_selector": "请提供对局序号，如：ow 详情 1",
+                    "missing_customer_token": "缺少玩家凭证，请先查询战绩获取",
+                    "render_failed": "图片生成失败，请稍后重试",
+                }
+                if error_code in error_messages:
+                    msg = error_messages[error_code]
+                    hint = ""
+
+                # 优先使用上游 hint，否则用内置 hint
+                if not hint:
+                    builtin_hints = {
+                        "bnet_not_found": "已绑定用户可直接使用 ow 资料 查询",
+                        "missing_target": "使用 ow 绑定 Player#12345 绑定后可省略玩家参数",
+                    }
+                    hint = builtin_hints.get(error_code, "")
+
+                lines = [f"请求失败：{msg}"] if msg else ["请求失败"]
+                if hint:
+                    lines.append(hint)
+                yield event.plain_result("\n".join(lines))
             except Exception:
                 yield event.plain_result(f"请求失败：HTTP {exc.response.status_code}")
         else:

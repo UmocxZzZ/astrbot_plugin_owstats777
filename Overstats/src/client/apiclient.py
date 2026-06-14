@@ -63,6 +63,18 @@ if TYPE_CHECKING:
         from src.db.request_metrics import RequestMetricsRecorder
 
 
+def _safe_print(*args: Any, **kwargs: Any) -> None:
+    """print() wrapper that handles non-ASCII characters on Windows consoles."""
+    try:
+        print(*args, **kwargs)
+    except UnicodeEncodeError:
+        try:
+            msg = " ".join(str(a) for a in args)
+            print(msg.encode("utf-8", errors="replace").decode("utf-8"), **kwargs)
+        except Exception:
+            pass
+
+
 def _getenv(primary: str, fallback: str, default: str) -> str:
     return os.getenv(primary, os.getenv(fallback, default))
 
@@ -269,7 +281,7 @@ class DashenCredentialPool:
         cooldown_until = now + self._cooldown_seconds
         with self._lock:
             self._cooldowns[credential.name] = cooldown_until
-        print(
+        _safe_print(
             "[overstats] dashen credential cooled down "
             f"account={credential.name} role_id={credential.role_id} "
             f"cooldown_seconds={int(self._cooldown_seconds)} reason={reason}"
@@ -600,7 +612,7 @@ class SafeClient:
     ) -> None:
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         context_suffix = f" {log_context}" if log_context else ""
-        print(
+        _safe_print(
             f"[{cur_time}] [SafeClient {method} Error] "
             f"route={route.label} slot={slot_kind} attempt={attempt} cost_ms={cost_ms} "
             f"retry={will_retry} active={self._active_count()} slow={self._slow_count()}"
@@ -620,7 +632,7 @@ class SafeClient:
             return
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         context_suffix = f" {log_context}" if log_context else ""
-        print(
+        _safe_print(
             f"[{cur_time}] [SafeClient {method} Slow] "
             f"route={route.label} slot={slot_kind} cost_ms={cost_ms} "
             f"active={self._active_count()} slow={self._slow_count()}{context_suffix} URL: {url}"
@@ -642,7 +654,7 @@ class SafeClient:
         start_rps = _record_request_window_sample(_request_started_timestamps, now)
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         context_suffix = f" {log_context}" if log_context else ""
-        print(
+        _safe_print(
             f"[{cur_time}] [SafeClient {method} Start] "
             f"id={request_id} route={route.label} slot={slot_kind} attempt={attempt} "
             f"active={self._active_count()} slow={self._slow_count()} start_rps={start_rps}/{REQUEST_LOG_WINDOW_SECONDS:.1f}s"
@@ -668,7 +680,7 @@ class SafeClient:
         start_rps = _current_request_window_count(_request_started_timestamps, now)
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         context_suffix = f" {log_context}" if log_context else ""
-        print(
+        _safe_print(
             f"[{cur_time}] [SafeClient {method} Done] "
             f"id={request_id} route={route.label} slot={slot_kind} attempt={attempt} status={response.status_code} "
             f"cost_ms={cost_ms} active={self._active_count()} slow={self._slow_count()} "
@@ -864,7 +876,7 @@ class DashenAPIClient:
         try:
             await recorder.enqueue(url, "upstream", success)
         except Exception as exc:
-            print(f"[overstats] failed to record upstream request metric url={url}: {exc}")
+            _safe_print(f"[overstats] failed to record upstream request metric url={url}: {exc}")
 
     async def _record_player_identity_payload(self, url: str, payload: Any) -> None:
         if not is_database_write_enabled():
@@ -880,12 +892,12 @@ class DashenAPIClient:
             try:
                 await recorder.enqueue(payload)
             except Exception as exc:
-                print(f"[overstats] failed to enqueue player identity url={url}: {exc}")
+                _safe_print(f"[overstats] failed to enqueue player identity url={url}: {exc}")
             return
         try:
             await record_identity_payload(payload)
         except Exception as exc:
-            print(f"[overstats] failed to record player identity url={url}: {exc}")
+            _safe_print(f"[overstats] failed to record player identity url={url}: {exc}")
 
     async def _record_match_detail_payload(self, url: str, payload: Any) -> None:
         if not is_database_write_enabled():
@@ -906,7 +918,7 @@ class DashenAPIClient:
         try:
             await recorder.enqueue(str(url or ""), payload)
         except Exception as exc:
-            print(f"[overstats] failed to record match detail url={url}: {exc}")
+            _safe_print(f"[overstats] failed to record match detail url={url}: {exc}")
 
     async def request_json(
         self,
