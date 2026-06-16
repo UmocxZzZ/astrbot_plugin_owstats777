@@ -27,7 +27,7 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 4. 在插件配置中填写大神 `dashen_role_id` 和 `dashen_token`
 5. 发送 `ow help` 测试
 
-### 方式二：普通版
+### 方式二：普通版（暂不开放）
 
 普通版需要单独部署 Overstats 服务。
 
@@ -147,6 +147,16 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 ```
 
 4. 将输出的 `role_id` 和 `token` 填入插件配置
+
+## 已验证环境
+
+- **Windows 11**：Python 3.10 / 3.12  
+  支持 AstrBot Launcher（x86_64）
+
+- **Ubuntu 24.04**：Python 3.13（x86_64，uv 管理 Astrbot 部署）  
+
+- **OpenWRT / iStoreOS 24.10.2**：Docker 部署  
+  （Rockchip RK3399，NanoPi R4s，arm64）
 
 ## 排障
 
