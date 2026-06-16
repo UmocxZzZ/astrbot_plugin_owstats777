@@ -158,6 +158,8 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 - **OpenWRT / iStoreOS 24.10.2**：Docker 部署  
   （Rockchip RK3399，NanoPi R4s，arm64）
 
+- **Astrbot 版本**：v4.25.5
+
 ## 排障
 
 常见问题请参考 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
