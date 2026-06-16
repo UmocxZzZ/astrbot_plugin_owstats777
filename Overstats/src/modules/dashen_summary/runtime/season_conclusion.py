@@ -51,10 +51,45 @@ def _read_env_int(name, default):
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 RESOURCE_DIR = PROJECT_ROOT / "res"
-QUERY_TOOL_ASSET_DIR = RESOURCE_DIR / "query_tool_assets"
+
+
+def _get_plugin_cache_dir(subdir: str) -> Path:
+    """Get a plugin cache subdirectory, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / subdir
+    except ImportError:
+        return Path(MODULE_DIR) / "cache" / subdir
+
+
+def _get_query_tool_asset_dir() -> Path:
+    """Get the query tool asset directory, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "query_tool_assets"
+    except ImportError:
+        return RESOURCE_DIR / "query_tool_assets"
+
+
+QUERY_TOOL_ASSET_DIR = _get_query_tool_asset_dir()
 SUMMARY_EXTRA_ASSET_DIR = QUERY_TOOL_ASSET_DIR / "extra"
 CONFIG_PATH = os.path.join(PROJECT_ROOT, "res", "query_tool.json")
-RANK_DISTRIBUTION_CACHE_DIR = os.path.join(MODULE_DIR, "cache", "rank_distribution_daily")
+
+
+def _get_rank_distribution_cache_dir() -> str:
+    """Get the rank distribution cache directory, using Astrbot plugin_data if available."""
+    return str(_get_plugin_cache_dir("rank_distribution_daily"))
+
+
+RANK_DISTRIBUTION_CACHE_DIR = _get_rank_distribution_cache_dir()
+
+
+def _get_icon_cache_dir() -> str:
+    """Get the icon cache directory, using Astrbot plugin_data if available."""
+    return str(_get_plugin_cache_dir("icons"))
+
+
+ICON_CACHE_DIR = _get_icon_cache_dir()
 SEASON_SUMMARY_URL_LIMIT = 6
 SEASON_SUMMARY_RENDER_CONCURRENCY = get_global_render_limit()
 SEASON_SUMMARY_RENDER_LOG_WAIT_MS = 200
@@ -573,7 +608,7 @@ def _summary_local_candidates_for_url(url):
     candidates.extend(
         [
             os.path.join(MODULE_DIR, "res", icon_name),
-            os.path.join(MODULE_DIR, "cache", icon_name),
+            os.path.join(ICON_CACHE_DIR, icon_name),
         ]
     )
     deduped = []
@@ -1938,7 +1973,7 @@ async def _load_summary_image(url):
         local_candidates.extend(
             [
                 os.path.join(MODULE_DIR, "res", icon_name),
-                os.path.join(MODULE_DIR, "cache", icon_name),
+                os.path.join(ICON_CACHE_DIR, icon_name),
             ]
         )
     try:

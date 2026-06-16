@@ -17,11 +17,12 @@ except ModuleNotFoundError:
 try:
     from overstats.src.modules.font_resolver import load_font, resolve_resource_dir
 except ModuleNotFoundError:
-    from src.modules.font_resolver import load_font, resolve_resource_dir
+    from src.modules.font_resolver import load_font, resolve_resource_dir, resolve_query_tool_asset_dir
 
 
 RESOURCE_DIR = resolve_resource_dir()
-ASSET_MANIFEST_PATH = RESOURCE_DIR / "query_tool_assets" / "assets_manifest.json"
+QUERY_TOOL_ASSET_DIR = resolve_query_tool_asset_dir()
+ASSET_MANIFEST_PATH = QUERY_TOOL_ASSET_DIR / "assets_manifest.json"
 _ASSET_MANIFEST_CACHE: Dict[str, Any] | None = None
 ROLE_ICON_FILENAMES = {
     "tank": "tank.png",

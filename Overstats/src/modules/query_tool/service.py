@@ -19,7 +19,18 @@ from .requests import MANUAL_KEYS, REMOTE_HEADERS, QueryToolRequests
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 QUERY_TOOL_PATH = PROJECT_ROOT / "overstats" / "res" / "query_tool.json"
-QUERY_TOOL_ASSET_DIR = PROJECT_ROOT / "overstats" / "res" / "query_tool_assets"
+
+
+def _get_query_tool_asset_dir() -> Path:
+    """Get the query tool asset directory, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "query_tool_assets"
+    except ImportError:
+        return PROJECT_ROOT / "overstats" / "res" / "query_tool_assets"
+
+
+QUERY_TOOL_ASSET_DIR = _get_query_tool_asset_dir()
 QUERY_TOOL_ASSET_MANIFEST_PATH = QUERY_TOOL_ASSET_DIR / "assets_manifest.json"
 IMAGE_URL_KEYS = ("icon", "image", "avatar", "portrait", "background", "smallIconUrl", "ddHeroIcon")
 ASSET_SECTION_DIRS = {

@@ -55,6 +55,15 @@ def resolve_resource_dir() -> Path:
     return candidates[0]
 
 
+def resolve_query_tool_asset_dir() -> Path:
+    """Get the query tool asset directory, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "query_tool_assets"
+    except ImportError:
+        return resolve_resource_dir() / "query_tool_assets"
+
+
 def _normalize_key(path_like: str | os.PathLike[str] | None) -> str:
     return os.path.normcase(os.path.normpath(str(path_like or "")))
 

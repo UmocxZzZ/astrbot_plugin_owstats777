@@ -96,6 +96,16 @@ class OWStatsPlugin(Star):
             # 配置注入完成后再导入 server（server 会导入 client，client 会读取 config）
             from config.loader import APIConfig, get_api_config
             from src import create_server
+            from src.cache import init_global_cache
+
+            # 初始化 Astrbot KV 缓存
+            self._kv_cache = init_global_cache(
+                kv_get=self.get_kv_data,
+                kv_put=self.put_kv_data,
+                kv_delete=self.delete_kv_data,
+                prefix="ow_cache",
+            )
+            logger.info("Astrbot KV 缓存已初始化")
 
             api_config = get_api_config()
             # 创建新实例替换 port（APIConfig 是 frozen dataclass）
@@ -141,6 +151,13 @@ class OWStatsPlugin(Star):
         # 等待服务线程完全退出
         if self._overstats_thread and self._overstats_thread.is_alive():
             self._overstats_thread.join(timeout=5)
+
+        # 清除全局缓存实例
+        try:
+            from src.cache import set_global_cache
+            set_global_cache(None)
+        except ImportError:
+            pass
 
         # 清除 Overstats 模块缓存，确保热重载时重新加载
         for mod_name in list(sys.modules.keys()):

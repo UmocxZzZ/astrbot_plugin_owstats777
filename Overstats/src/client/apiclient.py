@@ -107,7 +107,17 @@ JD_EQ_COMMUNITY_URL = (
 )
 OVERFAST_PLAYERS_URL = "https://overfast-api.tekrop.fr/players"
 PANDASCORE_OW_MATCHES_URL = "https://api.pandascore.co/ow/matches"
-REMOTE_IMAGE_CACHE_DIR = Path(__file__).resolve().parents[2] / "res" / "cache_img"
+def _get_remote_image_cache_dir() -> Path:
+    """Get the remote image cache directory, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "images"
+    except ImportError:
+        # Fallback: use local cache directory
+        return Path(__file__).resolve().parents[2] / "res" / "cache_img"
+
+
+REMOTE_IMAGE_CACHE_DIR = _get_remote_image_cache_dir()
 
 
 def _build_ow_esports_headers(api_key: Optional[str]) -> Dict[str, str]:

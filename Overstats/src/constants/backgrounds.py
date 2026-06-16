@@ -7,7 +7,18 @@ from typing import Any, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESOURCE_DIR = PROJECT_ROOT / "res"
-QUERY_TOOL_MAPS_DIR = RESOURCE_DIR / "query_tool_assets" / "maps"
+
+
+def _get_query_tool_maps_dir() -> Path:
+    """Get the query tool maps directory, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "query_tool_assets" / "maps"
+    except ImportError:
+        return RESOURCE_DIR / "query_tool_assets" / "maps"
+
+
+QUERY_TOOL_MAPS_DIR = _get_query_tool_maps_dir()
 BACKGROUND_IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".bmp"})
 
 

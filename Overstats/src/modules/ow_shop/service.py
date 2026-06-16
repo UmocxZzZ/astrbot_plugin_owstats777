@@ -20,7 +20,18 @@ from .requests import OWShopRequests, OWShopSection, SHOP_SECTION_SOURCES
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_CACHE_ROOT = PROJECT_ROOT / "cache" / "ow_shop"
+
+
+def _get_default_cache_root() -> Path:
+    """Get the default cache root, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "ow_shop"
+    except ImportError:
+        return PROJECT_ROOT / "cache" / "ow_shop"
+
+
+DEFAULT_CACHE_ROOT = _get_default_cache_root()
 CACHE_TTL_SECONDS = 15 * 60
 OW_SHOP_UNAVAILABLE_MESSAGE = "OW 商店数据暂时不可用。"
 

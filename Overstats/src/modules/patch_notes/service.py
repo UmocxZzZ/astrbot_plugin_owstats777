@@ -29,7 +29,18 @@ from .requests import (
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_CACHE_ROOT = PROJECT_ROOT / "cache" / "patch_notes"
+
+
+def _get_default_cache_root() -> Path:
+    """Get the default cache root, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "patch_notes"
+    except ImportError:
+        return PROJECT_ROOT / "cache" / "patch_notes"
+
+
+DEFAULT_CACHE_ROOT = _get_default_cache_root()
 PATCH_NOTES_UNAVAILABLE_MESSAGE = "OW 补丁说明暂时不可用。"
 
 

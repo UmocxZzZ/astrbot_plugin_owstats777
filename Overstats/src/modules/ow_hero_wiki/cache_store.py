@@ -9,8 +9,17 @@ import tempfile
 from typing import Any, Mapping
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-OW_HERO_WIKI_CACHE_DIR = PROJECT_ROOT / "cache" / "ow_hero_wiki"
+def _get_wiki_cache_dir() -> Path:
+    """Get the hero wiki cache directory, using Astrbot plugin_data if available."""
+    try:
+        from astrbot.core.utils.astrbot_path import get_astrbot_data_path
+        return Path(get_astrbot_data_path()) / "plugin_data" / "astrbot_plugin_owstats777" / "cache" / "ow_hero_wiki"
+    except ImportError:
+        # Fallback: use local cache directory
+        return Path(__file__).resolve().parents[3] / "cache" / "ow_hero_wiki"
+
+
+OW_HERO_WIKI_CACHE_DIR = _get_wiki_cache_dir()
 PAGE_CACHE_DIR = OW_HERO_WIKI_CACHE_DIR / "pages"
 STRUCTURED_CACHE_DIR = OW_HERO_WIKI_CACHE_DIR / "structured"
 ANSWER_CACHE_DIR = OW_HERO_WIKI_CACHE_DIR / "answers"
