@@ -1,5 +1,5 @@
 ﻿[project]
 name = "astrbot-plugin-owstats777"
-version = "0.2.0-beta2"
+version = "0.2.1-beta1"
 requires-python = ">=3.12"
 dependencies = []

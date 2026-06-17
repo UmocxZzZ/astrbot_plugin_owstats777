@@ -5,7 +5,7 @@ desc: |
   封装 Overstats 本地 API，提供守望先锋数据查询功能。
   支持玩家资料、战绩详情、段位历史、总结图片、AI 锐评、AI 开庭等功能。
   支持用户绑定 BattleTag，白名单用户无 AI 使用限制。
-version: 0.2.0-beta2
+version: 0.2.1-beta1
 author: UmocxZzZ
 support_platforms:
   - aiocqhttp

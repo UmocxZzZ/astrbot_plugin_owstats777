@@ -42,8 +42,13 @@ OW_ESPORTS_API_KEY = ""
 # Optional external OW guess asset pack root.
 OW_GUESS_ASSET_ROOT = "ow_guess_assets"
 
+# ======================= Dashen Season ====================== #
+# Effective Dashen season = max(DASHEN_CURRENT_SEASON, max(AIEvaluateConfig[*].seasonIdList)).
+DASHEN_CURRENT_SEASON = 23
+DASHEN_HISTORY_START_SEASON = 15
+
 # ======================= OW Hero Leaderboard ====================== #
-OW_HERO_LEADERBOARD_CN_SEASON = 2
+OW_HERO_LEADERBOARD_CN_SEASON = 3
 
 # ======================= Match Analysis ====================== #
 # OpenAI-compatible base URL

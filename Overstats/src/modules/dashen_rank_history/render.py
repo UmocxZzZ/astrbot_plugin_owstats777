@@ -545,7 +545,7 @@ def _load_fonts() -> Dict[str, Any]:
     return {
         "font_en_header": _font_resource("bignoodletoooblique.ttf", 32, fallback="BigNoodleToo.ttf"),
         "font_en_large": _font_resource("bignoodletoooblique.ttf", 80, fallback="BigNoodleToo.ttf"),
-        "font_player_name": _font_resource("bignoodletoooblique.ttf", 32, fallback="BigNoodleToo.ttf"),
+        "font_player_name": _font_chinese(32),
         "font_season_title": _font_resource("bignoodletoooblique.ttf", 80, fallback="BigNoodleToo.ttf"),
         "font_en_small2": _font_resource("BigNoodleToo.ttf", 30, fallback="en2.ttf"),
         "font_cn": _font_chinese(40),

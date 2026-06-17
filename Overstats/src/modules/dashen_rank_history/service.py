@@ -8,11 +8,13 @@ try:
     from overstats.src.modules.bnet_search import BnetSearchModule, BnetSearchResult, bnet_search_module
     from overstats.src.modules.dashen_profile import get_live_dashen_season
     from overstats.src.modules.errors import ModuleError
+    from overstats.src.modules.season_config import get_dashen_history_start_season
 except ModuleNotFoundError:
     from src.client.apiclient import DashenAPIClient
     from src.modules.bnet_search import BnetSearchModule, BnetSearchResult, bnet_search_module
     from src.modules.dashen_profile import get_live_dashen_season
     from src.modules.errors import ModuleError
+    from src.modules.season_config import get_dashen_history_start_season
 
 from .render import HISTORY_SUBTITLE, RenderedImage, collect_missing_assets, render_rank_history
 from .requests import (
@@ -153,8 +155,12 @@ class DashenRankHistoryModule:
 
     def _resolve_season_range(self, start_season: Optional[int], end_season: Optional[int]) -> tuple[int, int]:
         live_season = int(get_live_dashen_season())
-        start = int(start_season or 15)
         end = int(end_season or live_season)
+        # Default to last 4 seasons if no start_season specified
+        if start_season is not None:
+            start = int(start_season)
+        else:
+            start = max(int(get_dashen_history_start_season()), end - 3)
         if start <= 0 or end <= 0:
             raise ModuleError(
                 error="invalid_season_range",
@@ -167,7 +173,7 @@ class DashenRankHistoryModule:
                 error="invalid_season_range",
                 message="start_season must be less than or equal to end_season.",
                 status_code=400,
-                hint='Example: {"bnet_id":"Player#12345","start_season":15,"end_season":22}',
+                hint='Example: {"bnet_id":"Player#12345","start_season":20,"end_season":23}',
                 details={"start_season": start, "end_season": end},
             )
         return start, end
