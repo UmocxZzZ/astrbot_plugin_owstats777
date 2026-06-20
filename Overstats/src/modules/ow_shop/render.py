@@ -119,15 +119,8 @@ def render_ow_shop(
             current_y += card_w + gap
         current_y += 40
 
-    final_img = build_random_map_background(
-        (canvas_w, current_y + padding),
-        blur_radius=14,
-        overlay=(18, 22, 31, 126),
-        brightness=0.8,
-        color=0.9,
-    )
-    if final_img is None:
-        final_img = Image.new("RGBA", (canvas_w, current_y + padding), BACKGROUND_RGB + (255,))
+    # Use solid color background for faster rendering
+    final_img = Image.new("RGBA", (canvas_w, current_y + padding), BACKGROUND_RGB + (255,))
     draw = ImageDraw.Draw(final_img, "RGBA")
     draw.text(
         (canvas_w - padding - 320, 20),
@@ -371,4 +364,5 @@ def _resampling_lanczos() -> Any:
     from PIL import Image
 
     resampling = getattr(Image, "Resampling", Image)
-    return getattr(resampling, "LANCZOS")
+    # Use BILINEAR for faster rendering instead of LANCZOS
+    return getattr(resampling, "BILINEAR", getattr(resampling, "LANCZOS"))

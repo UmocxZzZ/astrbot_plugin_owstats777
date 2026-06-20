@@ -66,7 +66,7 @@ class DashenRankHistoryModule:
             start_season=start_season,
             end_season=end_season,
         )
-        seasons = self._build_season_summaries(raw_seasons)
+        seasons = self._build_season_summaries(raw_seasons, end_season=end_season)
         missing_assets = collect_missing_assets(seasons)
 
         full_id = ""
@@ -178,14 +178,34 @@ class DashenRankHistoryModule:
             )
         return start, end
 
-    def _build_season_summaries(self, raw_seasons: Sequence[DashenRankHistorySeasonPayload]) -> List[Dict[str, Any]]:
+    def _build_season_summaries(
+        self,
+        raw_seasons: Sequence[DashenRankHistorySeasonPayload],
+        *,
+        end_season: int,
+    ) -> List[Dict[str, Any]]:
         seasons: List[Dict[str, Any]] = []
+        live_season = int(get_live_dashen_season())
         for season_payload in raw_seasons:
             sport_payload = season_payload.sport
             fight_payload = season_payload.fight
             has_sport = bool(sport_payload and sport_payload_has_content(sport_payload))
             has_fight = bool(fight_payload and fight_payload_has_content(fight_payload))
+
+            # Show current season as placeholder even without data
             if not has_sport and not has_fight:
+                if season_payload.season == live_season:
+                    seasons.append(
+                        {
+                            "season": season_payload.season,
+                            "has_competitive": False,
+                            "has_stadium": False,
+                            "competitive": None,
+                            "stadium": None,
+                            "sport_payload": None,
+                            "fight_payload": None,
+                        }
+                    )
                 continue
 
             sport_data = payload_data(sport_payload)

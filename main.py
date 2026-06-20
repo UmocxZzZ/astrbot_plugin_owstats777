@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import datetime
 import json
 import re
 import sys
@@ -25,6 +26,7 @@ class OWStatsPlugin(Star):
         self.default_timeout: int = config.get("default_timeout", 60)
         self.summary_timeout: int = config.get("summary_timeout", 90)
         self.ai_timeout: int = config.get("ai_timeout", 180)
+        self.shop_timeout: int = config.get("shop_timeout", 180)  # 3 minutes for slow devices
         self.ai_whitelist: list = config.get("ai_whitelist", [])
         self.ai_cooldown: int = config.get("ai_cooldown_seconds", 300)
         self.embedded_overstats: bool = config.get("embedded_overstats", True)
@@ -32,10 +34,13 @@ class OWStatsPlugin(Star):
         self.client = httpx.AsyncClient(timeout=self.default_timeout)
         self._overstats_server = None
         self._overstats_thread = None
+        self._shop_prefetch_task = None
 
         # 启动内置 Overstats 服务
         if self.embedded_overstats:
             self._start_embedded_overstats()
+            # 预加载商店数据
+            self._start_shop_prefetch()
 
     def _start_embedded_overstats(self):
         """启动内置的 Overstats HTTP 服务"""
@@ -134,6 +139,100 @@ class OWStatsPlugin(Star):
         except Exception as e:
             logger.error(f"Overstats 内置服务启动失败: {e}")
             logger.warning("内置 Overstats 服务启动失败，请检查插件配置中的大神 role_id 和 token 是否正确。")
+
+    def _start_shop_prefetch(self):
+        """启动商店和补丁数据预加载"""
+        import asyncio
+        import threading
+
+        async def _prefetch_data():
+            """预加载商店和补丁数据"""
+            # 创建独立的 HTTP 客户端（不能跨线程共享）
+            client = httpx.AsyncClient(timeout=self.default_timeout)
+            try:
+                # 等待服务启动完成
+                await asyncio.sleep(10)
+
+                # 检查服务是否健康
+                try:
+                    resp = await client.get(f"{self.overstats_url}/healthz", timeout=5)
+                    if resp.status_code != 200:
+                        logger.warning("Overstats 服务未就绪，跳过预加载")
+                        return
+                except Exception:
+                    logger.warning("Overstats 服务未就绪，跳过预加载")
+                    return
+
+                # 预加载商店数据（异步，不阻塞）
+                logger.info("开始预加载商店数据...")
+                async def _prefetch_shop():
+                    try:
+                        await client.post(f"{self.overstats_url}/api/v2/ow-shop/image", json={}, timeout=180)
+                        logger.info("商店数据预加载完成")
+                    except Exception as e:
+                        logger.warning(f"商店预加载失败: {type(e).__name__}: {e}")
+
+                # 预加载补丁数据（异步，不阻塞）
+                logger.info("开始预加载补丁数据...")
+                async def _prefetch_patch():
+                    try:
+                        await client.post(f"{self.overstats_url}/api/v2/patch-notes/image", json={}, timeout=300)
+                        logger.info("补丁数据预加载完成")
+                    except Exception as e:
+                        logger.warning(f"补丁预加载失败: {type(e).__name__}: {e}")
+
+                # 并行执行预加载
+                await asyncio.gather(
+                    _prefetch_shop(),
+                    _prefetch_patch(),
+                    return_exceptions=True
+                )
+
+                # 每天 8 点刷新
+                while True:
+                    now = datetime.datetime.now()
+                    tomorrow_8am = now.replace(hour=8, minute=0, second=0, microsecond=0)
+                    if tomorrow_8am <= now:
+                        tomorrow_8am += datetime.timedelta(days=1)
+                    wait_seconds = (tomorrow_8am - now).total_seconds()
+                    logger.info(f"下次数据刷新: {tomorrow_8am}")
+                    await asyncio.sleep(wait_seconds)
+
+                    # 并行刷新商店和补丁数据
+                    logger.info("开始刷新数据...")
+                    async def _refresh_shop():
+                        try:
+                            await client.post(f"{self.overstats_url}/api/v2/ow-shop/image", json={}, timeout=180)
+                            logger.info("商店数据刷新完成")
+                        except Exception as e:
+                            logger.warning(f"商店刷新失败: {type(e).__name__}: {e}")
+
+                    async def _refresh_patch():
+                        try:
+                            await client.post(f"{self.overstats_url}/api/v2/patch-notes/image", json={}, timeout=300)
+                            logger.info("补丁数据刷新完成")
+                        except Exception as e:
+                            logger.warning(f"补丁刷新失败: {type(e).__name__}: {e}")
+
+                    await asyncio.gather(
+                        _refresh_shop(),
+                        _refresh_patch(),
+                        return_exceptions=True
+                    )
+            except Exception as e:
+                logger.error(f"数据预加载失败: {e}")
+            finally:
+                await client.aclose()
+
+        def _run_prefetch():
+            asyncio.run(_prefetch_data())
+
+        self._prefetch_task = threading.Thread(
+            target=_run_prefetch,
+            daemon=True,
+            name="data-prefetch"
+        )
+        self._prefetch_task.start()
 
     async def terminate(self):
         """插件卸载时停止服务"""
@@ -388,6 +487,14 @@ class OWStatsPlugin(Star):
         """设置 AI 冷却时间戳"""
         cooldown_key = f"ai_cooldown:{self._get_user_key(event)}"
         await self.put_kv_data(cooldown_key, int(time.time()))
+
+    async def _check_overstats_health(self) -> bool:
+        """检查 Overstats 服务是否健康"""
+        try:
+            resp = await self.client.get(f"{self.overstats_url}/healthz", timeout=5)
+            return resp.status_code == 200
+        except Exception:
+            return False
 
     async def _call_overstats(self, endpoint: str, payload: dict, timeout: Optional[int] = None) -> dict:
         """调用 Overstats API"""
@@ -989,8 +1096,15 @@ class OWStatsPlugin(Star):
     # ======================== 其他功能命令 ========================
 
     async def _cmd_shop(self, event: AstrMessageEvent):
+        if self.embedded_overstats and not self._overstats_server:
+            yield event.plain_result("Overstats 服务正在启动中，请稍后再试...")
+            return
+        if not await self._check_overstats_health():
+            yield event.plain_result("Overstats 服务未就绪，请稍后再试...")
+            return
         try:
-            img = await self._call_overstats_image("/api/v2/ow-shop/image", {})
+            yield event.plain_result("正在获取商店数据，请稍候...")
+            img = await self._call_overstats_image("/api/v2/ow-shop/image", {}, timeout=self.shop_timeout)
             path = await self._save_temp_image(img)
             yield event.image_result(path)
         except Exception as exc:
@@ -1007,8 +1121,15 @@ class OWStatsPlugin(Star):
                 yield r
 
     async def _cmd_patch_notes(self, event: AstrMessageEvent):
+        if self.embedded_overstats and not self._overstats_server:
+            yield event.plain_result("Overstats 服务正在启动中，请稍后再试...")
+            return
+        if not await self._check_overstats_health():
+            yield event.plain_result("Overstats 服务未就绪，请稍后再试...")
+            return
         try:
-            img = await self._call_overstats_image("/api/v2/patch-notes/image", {})
+            yield event.plain_result("正在获取补丁信息，请稍候...")
+            img = await self._call_overstats_image("/api/v2/patch-notes/image", {}, timeout=self.shop_timeout)
             path = await self._save_temp_image(img)
             yield event.image_result(path)
         except Exception as exc:

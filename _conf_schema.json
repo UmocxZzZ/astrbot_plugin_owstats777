@@ -47,6 +47,12 @@
     "hint": "AI 生成需要较长时间，建议 180 秒",
     "default": 180
   },
+  "shop_timeout": {
+    "description": "商店请求超时（秒）",
+    "type": "int",
+    "hint": "商店需要从多个源获取数据，慢设备建议 180 秒",
+    "default": 180
+  },
   "ai_whitelist": {
     "description": "AI 锐评/开庭白名单用户",
     "type": "list",

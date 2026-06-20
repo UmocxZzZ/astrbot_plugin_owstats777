@@ -23,3 +23,47 @@
 ## [0.2.1-beta1] - 2026-06-17
 
 - Release version 0.2.1-beta1
+
+## [0.2.1-beta2] - 2026-06-18
+
+- Release version 0.2.1-beta2
+
+## [0.2.1-beta3] - 2026-06-18
+
+- Release version 0.2.1-beta3
+
+## [0.2.1-beta4] - 2026-06-18
+
+- Release version 0.2.1-beta4
+
+## [0.2.1-beta5] - 2026-06-18
+
+- Release version 0.2.1-beta5
+
+## [0.2.2-beta] - 2026-06-20
+
+- Release version 0.2.2-beta
+
+## [0.2.2-beta1] - 2026-06-20
+
+- Release version 0.2.2-beta1
+
+## [0.2.2-beta2] - 2026-06-21
+
+- Release version 0.2.2-beta2
+
+## [0.2.2-beta3] - 2026-06-21
+
+- Release version 0.2.2-beta3
+
+## [0.2.2-beta4] - 2026-06-21
+
+- Release version 0.2.2-beta4
+
+## [0.2.2-beta5] - 2026-06-21
+
+- Release version 0.2.2-beta5
+
+## [0.2.2-beta6] - 2026-06-21
+
+- Release version 0.2.2-beta6

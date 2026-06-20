@@ -34,6 +34,10 @@ Thumbs.db
 court_image_*.png
 court_result.json
 
+# Docker
+docker-compose.yml
+docker-compose.yaml
+
 # Overstats 运行时缓存（打包时排除）
 Overstats/res/cache_img/
 Overstats/res/query_tool_assets/

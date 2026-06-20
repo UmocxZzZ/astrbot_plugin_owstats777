@@ -549,6 +549,8 @@ def _extract_patch_sections(block_html: str) -> list[Dict[str, Any]]:
         title = _extract_first_patch_field(section_block, "h4", "PatchNotes-sectionTitle")
         intro_block = _extract_first_block_by_class(section_block, "PatchNotes-sectionDescription")
         intro = _dedupe_text_items(_extract_paragraphs(intro_block))
+        # Also extract list items as intro content
+        intro.extend(_dedupe_text_items(_extract_list_items(intro_block)))
         hero_updates = _extract_hero_updates(section_block, group_title=title)
         map_updates = _extract_map_updates(section_block, section_title=title)
         general_updates = _extract_general_updates(section_block, section_title=title)

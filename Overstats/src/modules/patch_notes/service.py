@@ -90,6 +90,10 @@ class PatchNotesModule:
         self.asset_dir = self.cache_root / "images"
 
     async def query_patch_notes(self, *, patch_kind: Any = None, render: bool = False) -> PatchNotesOutput:
+        import asyncio
+        import time as _time
+        start_time = _time.monotonic()
+
         try:
             requested_kind = normalize_patch_kind(patch_kind)
         except ValueError as exc:
@@ -101,7 +105,19 @@ class PatchNotesModule:
             ) from exc
 
         slot_key = requested_kind
-        cn_slots, en_slots = await self.requests.scan_sources(now_date=self.date_provider())
+        try:
+            cn_slots, en_slots = await asyncio.wait_for(
+                self.requests.scan_sources(now_date=self.date_provider()),
+                timeout=60
+            )
+        except asyncio.TimeoutError:
+            print(f"[overstats] patch_notes scan_sources timed out after 60s")
+            raise ModuleError(
+                error="patch_notes_timeout",
+                message="补丁信息获取超时，请稍后重试",
+                status_code=504,
+            )
+
         chosen_source = choose_source(cn_slots, en_slots, slot_key=slot_key)
         if chosen_source is None:
             raise ModuleError(
@@ -116,6 +132,15 @@ class PatchNotesModule:
 
         chosen_slots = cn_slots if chosen_source == "cn" else en_slots
         selected_patch = dict(chosen_slots[slot_key])
+
+        # Debug: log sections count
+        sections = selected_patch.get("sections") or []
+        print(f"[overstats] patch_notes: {len(sections)} sections found")
+        for i, section in enumerate(sections):
+            hero_count = len(section.get("hero_updates") or [])
+            map_count = len(section.get("map_updates") or [])
+            general_count = len(section.get("general_updates") or [])
+            print(f"  Section {i}: {section.get('title', 'N/A')} (heroes={hero_count}, maps={map_count}, general={general_count})")
         summary_text = build_summary_text(cn_slots, en_slots, selected_patch)
         sources_summary = build_sources_summary(cn_slots, en_slots)
 
@@ -134,7 +159,14 @@ class PatchNotesModule:
                 cached_image_bytes = cached_bundle.get("image")
             else:
                 try:
-                    render_candidate, translated = await self.requests.translate_patch_candidate(selected_patch)
+                    render_candidate, translated = await asyncio.wait_for(
+                        self.requests.translate_patch_candidate(selected_patch),
+                        timeout=120
+                    )
+                except asyncio.TimeoutError:
+                    print(f"[overstats] patch_notes translation timed out after 120s")
+                    render_candidate = dict(selected_patch)
+                    translated = False
                 except Exception as exc:
                     print(f"[overstats] patch_notes translation failed: {type(exc).__name__}: {exc}")
                     render_candidate = dict(selected_patch)
@@ -151,9 +183,13 @@ class PatchNotesModule:
             sources=sources_summary,
         )
         if not render:
+            elapsed = _time.monotonic() - start_time
+            print(f"[overstats] patch_notes query done in {elapsed:.2f}s")
             return output
 
         if cached_image_bytes:
+            elapsed = _time.monotonic() - start_time
+            print(f"[overstats] patch_notes done in {elapsed:.2f}s (cached)")
             return PatchNotesOutput(
                 requested_kind=output.requested_kind,
                 selected_kind=output.selected_kind,
@@ -166,10 +202,25 @@ class PatchNotesModule:
                 image=RenderedImage(content=cached_image_bytes),
             )
 
-        image = await self._render_candidate(output.selected, output.summary)
+        try:
+            image = await asyncio.wait_for(
+                self._render_candidate(output.selected, output.summary),
+                timeout=60
+            )
+        except asyncio.TimeoutError:
+            elapsed = _time.monotonic() - start_time
+            print(f"[overstats] patch_notes render timed out after {elapsed:.2f}s")
+            raise ModuleError(
+                error="patch_notes_render_timeout",
+                message="补丁图片生成超时，请稍后重试",
+                status_code=504,
+            )
+
         if chosen_source == "en" and translated and image is not None:
             self._save_cached_patch_bundle(cache_key, output.selected, output.summary, image.content, translated=True)
 
+        elapsed = _time.monotonic() - start_time
+        print(f"[overstats] patch_notes done in {elapsed:.2f}s")
         return PatchNotesOutput(
             requested_kind=output.requested_kind,
             selected_kind=output.selected_kind,

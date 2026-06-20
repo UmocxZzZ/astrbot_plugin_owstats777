@@ -13,8 +13,9 @@ from urllib.parse import urlparse
 import httpx
 
 
-REQUEST_TIMEOUT_SECONDS = 20.0
-IMAGE_CACHE_MAX_CONCURRENCY = 6
+REQUEST_TIMEOUT_SECONDS = 15.0  # Timeout for API requests
+IMAGE_DOWNLOAD_TIMEOUT_SECONDS = 10.0  # Timeout for image downloads
+IMAGE_CACHE_MAX_CONCURRENCY = 4  # Reduced for low-power devices
 REQUEST_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "Referer": "https://us.shop.battle.net/",
@@ -136,13 +137,22 @@ class OWShopRequests:
         self.now_ms_factory = now_ms_factory or (lambda: int(time.time() * 1000))
 
     async def fetch_section(self, source: OWShopSource) -> OWShopSection:
-        async with httpx.AsyncClient(
-            headers=self.headers,
-            timeout=self.timeout_seconds,
-            follow_redirects=True,
-        ) as client:
-            payload = await self._fetch_json_with_client(client, source.url)
-        return self.normalize_section_payload(source, payload)
+        import time as _time
+        start = _time.monotonic()
+        try:
+            async with httpx.AsyncClient(
+                headers=self.headers,
+                timeout=self.timeout_seconds,
+                follow_redirects=True,
+            ) as client:
+                payload = await self._fetch_json_with_client(client, source.url)
+            elapsed = _time.monotonic() - start
+            print(f"[overstats] ow_shop fetch '{source.title}' took {elapsed:.2f}s")
+            return self.normalize_section_payload(source, payload)
+        except Exception as exc:
+            elapsed = _time.monotonic() - start
+            print(f"[overstats] ow_shop fetch '{source.title}' failed after {elapsed:.2f}s: {exc}")
+            raise
 
     def normalize_section_payload(self, source: OWShopSource, payload: Any) -> OWShopSection:
         expires_text = ""
@@ -187,6 +197,9 @@ class OWShopRequests:
         *,
         max_concurrency: int = IMAGE_CACHE_MAX_CONCURRENCY,
     ) -> Dict[str, Path]:
+        import time as _time
+        start = _time.monotonic()
+
         normalized_urls = []
         seen = set()
         for image_url in image_urls:
@@ -200,11 +213,12 @@ class OWShopRequests:
         if not normalized_urls:
             return {}
 
+        print(f"[overstats] ow_shop caching {len(normalized_urls)} images...")
         results: Dict[str, Path] = {}
         semaphore = asyncio.Semaphore(max(1, int(max_concurrency or 1)))
         async with httpx.AsyncClient(
             headers=self.headers,
-            timeout=self.timeout_seconds,
+            timeout=IMAGE_DOWNLOAD_TIMEOUT_SECONDS,
             follow_redirects=True,
         ) as client:
 
@@ -219,6 +233,8 @@ class OWShopRequests:
                 if isinstance(failure, Exception):
                     print(f"[overstats] ow_shop image cache failed: url={image_url} error={type(failure).__name__}: {failure}")
 
+        elapsed = _time.monotonic() - start
+        print(f"[overstats] ow_shop cached {len(results)}/{len(normalized_urls)} images in {elapsed:.2f}s")
         return results
 
     async def _fetch_json_with_client(self, client: httpx.AsyncClient, url: str) -> Any:

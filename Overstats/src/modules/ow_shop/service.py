@@ -32,7 +32,8 @@ def _get_default_cache_root() -> Path:
 
 
 DEFAULT_CACHE_ROOT = _get_default_cache_root()
-CACHE_TTL_SECONDS = 15 * 60
+CACHE_TTL_SECONDS = 60 * 60  # 1 hour for slow devices
+STALE_CACHE_TTL_SECONDS = 48 * 60 * 60  # 48 hours - use stale cache if refresh fails
 OW_SHOP_UNAVAILABLE_MESSAGE = "OW 商店数据暂时不可用。"
 
 RENDER_CACHE_VERSION = "v2"
@@ -78,11 +79,45 @@ class OWShopModule:
         self.image_asset_dir = self.cache_root / "images"
 
     async def query_shop(self, *, render: bool = False) -> OWShopOutput:
+        import time as _time
+        start_time = _time.monotonic()
+
         snapshot = self._load_cached_snapshot()
+        cache_hit = snapshot is not None
         if snapshot is None:
-            snapshot = await self._refresh_snapshot()
-            self._write_json_atomic(self.data_cache_path, snapshot)
-            self._delete_stale_render_cache()
+            print(f"[overstats] ow_shop cache miss, refreshing...")
+            try:
+                refresh_start = _time.monotonic()
+                # Use timeout for refresh to avoid hanging
+                snapshot = await asyncio.wait_for(self._refresh_snapshot(), timeout=90)
+                refresh_elapsed = _time.monotonic() - refresh_start
+                print(f"[overstats] ow_shop refresh took {refresh_elapsed:.2f}s")
+                self._write_json_atomic(self.data_cache_path, snapshot)
+                self._delete_stale_render_cache()
+            except asyncio.TimeoutError:
+                refresh_elapsed = _time.monotonic() - start_time
+                print(f"[overstats] ow_shop refresh timed out after {refresh_elapsed:.2f}s")
+                # Try stale cache if refresh times out
+                stale_snapshot = self._load_cached_snapshot(allow_stale=True)
+                if stale_snapshot is not None:
+                    print(f"[overstats] ow_shop using stale cache after timeout")
+                    snapshot = stale_snapshot
+                else:
+                    raise ModuleError(
+                        error="ow_shop_timeout",
+                        message="商店数据获取超时，请稍后重试",
+                        status_code=504,
+                    )
+            except Exception as exc:
+                refresh_elapsed = _time.monotonic() - start_time
+                print(f"[overstats] ow_shop refresh failed after {refresh_elapsed:.2f}s: {exc}")
+                # Try stale cache if refresh fails
+                stale_snapshot = self._load_cached_snapshot(allow_stale=True)
+                if stale_snapshot is not None:
+                    print(f"[overstats] ow_shop using stale cache")
+                    snapshot = stale_snapshot
+                else:
+                    raise
 
         output = OWShopOutput(
             generated_at=str(snapshot.get("generated_at") or self._format_generated_at(self.time_provider())),
@@ -95,10 +130,14 @@ class OWShopModule:
         )
 
         if not render:
+            total_elapsed = _time.monotonic() - start_time
+            print(f"[overstats] ow_shop query done in {total_elapsed:.2f}s (cache_hit={cache_hit})")
             return output
 
         cached_image = self._load_cached_render()
         if cached_image is not None:
+            total_elapsed = _time.monotonic() - start_time
+            print(f"[overstats] ow_shop done in {total_elapsed:.2f}s (cache_hit={cache_hit}, image_cached=True)")
             return OWShopOutput(
                 generated_at=output.generated_at,
                 cache_ttl_seconds=output.cache_ttl_seconds,
@@ -106,8 +145,23 @@ class OWShopModule:
                 image=cached_image,
             )
 
-        rendered = await self._render_sections(output.sections, output.generated_at)
+        render_start = _time.monotonic()
+        try:
+            rendered = await asyncio.wait_for(self._render_sections(output.sections, output.generated_at), timeout=60)
+        except asyncio.TimeoutError:
+            render_elapsed = _time.monotonic() - render_start
+            print(f"[overstats] ow_shop render timed out after {render_elapsed:.2f}s")
+            raise ModuleError(
+                error="ow_shop_render_timeout",
+                message="商店图片生成超时，请稍后重试",
+                status_code=504,
+            )
+        render_elapsed = _time.monotonic() - render_start
+        print(f"[overstats] ow_shop render took {render_elapsed:.2f}s")
+
         self._write_bytes_atomic(self.image_cache_path, rendered.content)
+        total_elapsed = _time.monotonic() - start_time
+        print(f"[overstats] ow_shop done in {total_elapsed:.2f}s (cache_hit={cache_hit}, image_cached=False)")
         return OWShopOutput(
             generated_at=output.generated_at,
             cache_ttl_seconds=output.cache_ttl_seconds,
@@ -175,7 +229,7 @@ class OWShopModule:
             )
         return rendered
 
-    def _load_cached_snapshot(self) -> Optional[Dict[str, Any]]:
+    def _load_cached_snapshot(self, allow_stale: bool = False) -> Optional[Dict[str, Any]]:
         if not self.data_cache_path.exists():
             return None
         try:
@@ -187,9 +241,13 @@ class OWShopModule:
             return None
         cached_at = float(payload.get("cached_at") or 0)
         ttl = max(1, int(payload.get("cache_ttl_seconds") or CACHE_TTL_SECONDS))
-        if float(self.time_provider()) - cached_at >= ttl:
-            return None
-        return payload
+        age = float(self.time_provider()) - cached_at
+        if age < ttl:
+            return payload
+        # Return stale cache if allowed and within stale TTL
+        if allow_stale and age < STALE_CACHE_TTL_SECONDS:
+            return payload
+        return None
 
     def _load_cached_render(self) -> Optional[RenderedImage]:
         for cache_path in (self.image_cache_path,):

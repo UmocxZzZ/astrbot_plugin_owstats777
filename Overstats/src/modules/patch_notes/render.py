@@ -161,32 +161,43 @@ def _draw_patch_notes_content(
     y = CANVAS_MARGIN
     y = _draw_header_card(draw, candidate, summary_text, fonts, y)
 
-    for section in candidate.get("sections") or []:
-        y = _draw_section_title(draw, section.get("title", ""), fonts, y)
+    sections = list(candidate.get("sections") or [])
+    print(f"[overstats] render_patch_notes: {len(sections)} sections to render")
+
+    for section_idx, section in enumerate(sections):
+        section_title = section.get("title", "")
+        print(f"[overstats] render_patch_notes: rendering section {section_idx}: {section_title}")
+        y = _draw_section_title(draw, section_title, fonts, y)
         intro = list(section.get("intro") or [])
         if intro:
             y = _draw_text_card(
                 draw,
-                title="姒傝",
+                title="概览",
                 body_lines=intro,
                 fonts=fonts,
                 y=y,
                 accent=TEXT_ACCENT,
             )
 
-        for hero_update in section.get("hero_updates") or []:
+        hero_updates = list(section.get("hero_updates") or [])
+        map_updates = list(section.get("map_updates") or [])
+        general_updates = list(section.get("general_updates") or [])
+        print(f"[overstats] render_patch_notes: section {section_idx} has {len(hero_updates)} heroes, {len(map_updates)} maps, {len(general_updates)} general")
+
+        for hero_update in hero_updates:
             y = _draw_hero_card(canvas, draw, hero_update, asset_paths, fonts, y)
-        for map_update in section.get("map_updates") or []:
+        for map_update in map_updates:
             y = _draw_map_card(canvas, draw, map_update, asset_paths, fonts, y)
-        for general_update in section.get("general_updates") or []:
+        for general_update in general_updates:
             lines = []
             lines.extend(general_update.get("paragraphs") or [])
-            lines.extend(f"鈥?{item}" for item in (general_update.get("bullets") or []))
+            lines.extend(f"• {item}" for item in (general_update.get("bullets") or []))
             if general_update.get("dev_note"):
-                lines.append(f"寮€鍙戣€呰鏄庯細{general_update.get('dev_note')}")
+                lines.append(f"开发者说明：{general_update.get('dev_note')}")
+            print(f"[overstats] render_patch_notes: general_update title={general_update.get('title', 'N/A')}, paragraphs={len(general_update.get('paragraphs') or [])}, bullets={len(general_update.get('bullets') or [])}")
             y = _draw_text_card(
                 draw,
-                title=general_update.get("title", "琛ヤ竵鏉＄洰"),
+                title=general_update.get("title", "补丁条目"),
                 body_lines=lines,
                 fonts=fonts,
                 y=y,
@@ -257,7 +268,7 @@ def _draw_header_card(draw: Any | None, candidate: Mapping[str, Any], summary_te
         wrapped = _wrap_text(line, fonts["small"], CANVAS_WIDTH - CANVAS_MARGIN * 2 - 40)
         summary_lines.extend(wrapped or [""])
     content_width = CANVAS_WIDTH - CANVAS_MARGIN * 2 - _px(40)
-    title_lines = _wrap_text(str(candidate.get("title") or "琛ヤ竵璇存槑"), fonts["headline"], content_width)
+    title_lines = _wrap_text(str(candidate.get("title") or "补丁说明"), fonts["headline"], content_width)
     summary_lines = []
     for line in str(summary_text or "").splitlines():
         wrapped = _wrap_text(line, fonts["small"], content_width)
