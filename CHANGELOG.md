@@ -67,3 +67,11 @@
 ## [0.2.2-beta6] - 2026-06-21
 
 - Release version 0.2.2-beta6
+
+## [0.2.2-beta7] - 2026-06-21
+
+- Release version 0.2.2-beta7
+
+## [0.2.2-beta8] - 2026-06-21
+
+- Release version 0.2.2-beta8

@@ -1049,9 +1049,17 @@ class OWStatsPlugin(Star):
 
     # ======================== 排行榜命令 ========================
 
+    def _normalize_province(self, province: str) -> str:
+        """规范化省份名称，去除省/市/自治区等后缀"""
+        suffixes = ["省", "市", "自治区", "壮族自治区", "回族自治区", "维吾尔自治区", "特别行政区"]
+        for suffix in suffixes:
+            if province.endswith(suffix):
+                return province[:-len(suffix)]
+        return province
+
     async def _cmd_leaderboard(self, event: AstrMessageEvent, subcmd: str, arg1: str, arg2: str):
         if subcmd == "省榜":
-            province = arg1 or "北京"
+            province = self._normalize_province(arg1) if arg1 else "北京"
             role = arg2 or "tank"
             try:
                 img = await self._call_overstats_image("/api/v2/dashen-rank-leaderboard/image", {
@@ -1065,7 +1073,7 @@ class OWStatsPlugin(Star):
                     yield r
             return
         if subcmd == "英雄":
-            province = arg1 or "北京"
+            province = self._normalize_province(arg1) if arg1 else "北京"
             hero = arg2 or "猎空"
             try:
                 img = await self._call_overstats_image("/api/v2/dashen-hero-leaderboard/image", {
@@ -1079,7 +1087,21 @@ class OWStatsPlugin(Star):
                     yield r
             return
         if subcmd == "选取率":
-            mode = arg1 or "competitive"
+            # 翻译中文模式名
+            mode_map = {
+                "竞技": "competitive",
+                "排位": "competitive",
+                "快速": "quick",
+                "quick": "quick",
+                "competitive": "competitive",
+            }
+            if not arg1:
+                yield event.plain_result("用法：ow 排行 选取率 [模式]\n模式：竞技/排位、快速")
+                return
+            mode = mode_map.get(arg1)
+            if not mode:
+                yield event.plain_result(f"不支持的模式：{arg1}\n可用模式：竞技/排位、快速")
+                return
             try:
                 img = await self._call_overstats_image("/api/v2/ow-hero-pick-rate/image", {
                     "view": "ranking",
