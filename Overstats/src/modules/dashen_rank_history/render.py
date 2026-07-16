@@ -26,6 +26,7 @@ from .requests import fight_payload_has_content, payload_data, sport_payload_has
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 RESOURCE_DIR = resolve_resource_dir()
 SEASON_LOGO_DIR = RESOURCE_DIR / "season_logo"
+SEASON_BANNER_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
 RANK_FLAT_DIR = RESOURCE_DIR / "rank_flat"
 QUERY_TOOL_ASSET_DIR = resolve_query_tool_asset_dir()
 HISTORY_SUBTITLE = "历史段位"
@@ -75,7 +76,7 @@ def collect_missing_assets(seasons: Sequence[Dict[str, Any]]) -> List[str]:
         season = int(item.get("season") or 0)
         if season <= 0:
             continue
-        if not (SEASON_LOGO_DIR / f"s{season}.png").exists():
+        if _find_season_banner_path(season) is None:
             _append(f"overstats/res/season_logo/s{season}.png")
     return missing
 
@@ -322,7 +323,10 @@ def _draw_season_desc(draw: Any, config: Dict[str, Any], season: int, fonts: Dic
 def _paste_season_banner(rect: Any, season: int) -> None:
     from PIL import Image
 
-    banner = _load_local_rgba(SEASON_LOGO_DIR / f"s{season}.png")
+    banner_path = _find_season_banner_path(season)
+    if banner_path is None:
+        return
+    banner = _load_local_rgba(banner_path)
     if banner is None:
         return
     target_width = 480
@@ -337,6 +341,14 @@ def _paste_season_banner(rect: Any, season: int) -> None:
         top = (new_height - max_height) // 2
         banner = banner.crop((0, top, target_width, top + max_height))
     rect.paste(banner, (10, 10), banner)
+
+
+def _find_season_banner_path(season: int) -> Path | None:
+    for suffix in SEASON_BANNER_SUFFIXES:
+        candidate = SEASON_LOGO_DIR / f"s{season}{suffix}"
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def _paste_mode_icon(rect: Any, filename: str, position: tuple[int, int], size: tuple[int, int]) -> None:
@@ -551,7 +563,7 @@ def _load_fonts() -> Dict[str, Any]:
         "font_cn": _font_chinese(40),
         "font_cn_small": _font_chinese(25),
         "font_cn_small_ex": _font_chinese(18),
-        "font_num": _font_resource("num.ttf", 23, fallback="GrotaRoundedExtraBold.otf"),
+        "font_num": _font_resource("GrotaRoundedExtraBold.otf", 23, fallback="en.ttf"),
     }
 
 

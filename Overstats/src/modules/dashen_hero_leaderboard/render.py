@@ -269,7 +269,7 @@ def _load_fonts() -> Dict[str, Any]:
         "group": _load_font("simhei.ttf", 22, windows_fallback=True),
         "card_title": _load_font("simhei.ttf", 17, windows_fallback=True),
         "card_meta": _load_font("simhei.ttf", 13, windows_fallback=True),
-        "score": _load_font("num.ttf", 20),
+        "score": _load_font("GrotaRoundedExtraBold.otf", 20),
     }
 
 
