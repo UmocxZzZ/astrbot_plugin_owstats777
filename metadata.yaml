@@ -1,10 +1,8 @@
 ﻿name: astrbot_plugin_owstats777
 display_name: OWStats 守望先锋数据查询
-short_desc: 基于 Overstats 的守望先锋战绩查询、AI 锐评、AI 开庭插件
+short_desc: 守望先锋国服数据查询插件
 desc: |
-  封装 Overstats 本地 API，提供守望先锋数据查询功能。
-  支持玩家资料、战绩详情、段位历史、总结图片、AI 锐评、AI 开庭等功能。
-  支持用户绑定 BattleTag，白名单用户无 AI 使用限制。
+  守望先锋国服数据查询插件，支持玩家资料、战绩详情、段位历史、总结图片、AI 锐评、AI 开庭等功能。
 version: 0.3.0
 author: UmocxZzZ
 support_platforms:
