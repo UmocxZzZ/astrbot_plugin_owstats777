@@ -18,12 +18,7 @@
     "yd.921245d92f5f48ca9@163.com",
     "13521910363"
   ],
-  "dynamicBanner": [
-    {
-      "img": "https://img.166.net/gameyw-misc/opd/squash/20260410/151358-zfs9lk4rey.png",
-      "url": "https://act.ds.163.com/4700263e9d28a79b/69b376c045d19f02779255ff"
-    }
-  ],
+  "dynamicBanner": [],
   "isOpenCustomerFreind": false,
   "isOpenSuperSetting": false,
   "AIEvaluateConfig": [
@@ -1946,6 +1941,18 @@
       "cover": "",
       "destinyHeroBanner": "",
       "ddHeroIcon": "https://img.166.net/gameyw-misc/opd/squash/20260509/142317-5vpiksb4hf.png"
+    },
+    {
+      "id": "0x02E000000000052C",
+      "heroGuid": "207165582859044160",
+      "roleGuid": "972777519512029262",
+      "roleType": "dps",
+      "name": "死怨",
+      "icon": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/070481cf871590a2b45a51d1335f9fe3d65eb4e4d361ecdd998b34fae2ed65d5.png",
+      "smallIconUrl": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/ad0931805f9f28f03e8d55fead38ed85ee52f5c75f89aa3deec8a27fdc4fd6b3.png",
+      "cover": "",
+      "destinyHeroBanner": "",
+      "ddHeroIcon": ""
     }
   ],
   "mapList": [
@@ -19030,6 +19037,27 @@
       "heroName": "瑞稀",
       "valueGuid": "603482350067647479",
       "valueText": "治疗量",
+      "valueType": "通用数据"
+    },
+    {
+      "heroGuid": "207165582859044160",
+      "heroName": "死怨",
+      "valueGuid": "603482350067647671",
+      "valueText": "对英雄伤害量",
+      "valueType": "通用数据"
+    },
+    {
+      "heroGuid": "207165582859044160",
+      "heroName": "死怨",
+      "valueGuid": "603482350067646497",
+      "valueText": "累计游戏时间",
+      "valueType": "通用数据"
+    },
+    {
+      "heroGuid": "207165582859044160",
+      "heroName": "死怨",
+      "valueGuid": "603482350067646495",
+      "valueText": "消灭",
       "valueType": "通用数据"
     }
   ],

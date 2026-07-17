@@ -1,21 +1,37 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import datetime
+import hashlib
 import json
 import re
+import secrets
 import sys
 import tempfile
 import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star
+from quart import jsonify, request as web_request
+
+
+PLUGIN_NAME = "astrbot_plugin_owstats777"
+DASHEN_CREDENTIAL_KV_KEY = "dashen_credentials/v1"
+DASHEN_QR_PRODUCT = "godlike_web"
+DASHEN_QR_API_ROOT = "https://q.reg.163.com/qrcode"
+DASHEN_INFO_API_ROOT = "https://inf.ds.163.com"
+DASHEN_QR_TTL_SECONDS = 300
+DASHEN_QR_MAX_SESSIONS = 6
+DASHEN_QR_POLL_INTERVAL_MS = 2000
 
 
 class OWStatsPlugin(Star):
@@ -26,6 +42,7 @@ class OWStatsPlugin(Star):
         self.default_timeout: int = config.get("default_timeout", 60)
         self.summary_timeout: int = config.get("summary_timeout", 90)
         self.ai_timeout: int = config.get("ai_timeout", 180)
+        self.llm_provider_id: str = str(config.get("llm_provider_id", "") or "").strip()
         self.shop_timeout: int = config.get("shop_timeout", 180)  # 3 minutes for slow devices
         self.ai_whitelist: list = config.get("ai_whitelist", [])
         self.ai_cooldown: int = config.get("ai_cooldown_seconds", 300)
@@ -35,12 +52,1051 @@ class OWStatsPlugin(Star):
         self._overstats_server = None
         self._overstats_thread = None
         self._shop_prefetch_task = None
+        self._dashen_credential: Optional[Dict[str, Any]] = None
+        self._dashen_credential_source = "none"
+        self._dashen_credential_lock = asyncio.Lock()
+        self._dashen_qr_sessions: Dict[str, Dict[str, Any]] = {}
+        self._dashen_qr_sessions_lock = asyncio.Lock()
+        self._register_dashen_auth_apis()
 
-        # 启动内置 Overstats 服务
+    async def initialize(self) -> None:
+        """加载插件凭证后启动内置服务。"""
+        await self._load_dashen_credential()
         if self.embedded_overstats:
             self._start_embedded_overstats()
-            # 预加载商店数据
             self._start_shop_prefetch()
+
+    def _register_dashen_auth_apis(self) -> None:
+        api_prefix = f"/{PLUGIN_NAME}/dashen-auth"
+        self.context.register_web_api(
+            f"{api_prefix}/status",
+            self._dashen_auth_status,
+            ["GET"],
+            "Get Dashen credential status",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/save",
+            self._dashen_auth_save,
+            ["POST"],
+            "Save Dashen credential",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/migrate",
+            self._dashen_auth_migrate,
+            ["POST"],
+            "Migrate legacy Dashen credential",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/unbind",
+            self._dashen_auth_unbind,
+            ["POST"],
+            "Delete Dashen credential",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/qr/start",
+            self._dashen_qr_start,
+            ["POST"],
+            "Start Dashen QR authorization",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/qr/status",
+            self._dashen_qr_status,
+            ["POST"],
+            "Poll Dashen QR authorization",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/qr/complete",
+            self._dashen_qr_complete,
+            ["POST"],
+            "Exchange Dashen web session for Overwatch credential",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/qr/cancel",
+            self._dashen_qr_cancel,
+            ["POST"],
+            "Cancel Dashen QR authorization",
+        )
+        self.context.register_web_api(
+            f"{api_prefix}/signer/wasm",
+            self._dashen_signer_wasm,
+            ["GET"],
+            "Load bundled Dashen signer runtime",
+        )
+
+    async def _dashen_signer_wasm(self):
+        signer_path = Path(__file__).resolve().parent / (
+            "pages/dashen-auth/vendor/sig/7952eec11d6277f8be47.module.wasm"
+        )
+        try:
+            signer_bytes = signer_path.read_bytes()
+        except OSError:
+            logger.error("大神签名 WASM 资源缺失")
+            return self._page_error("大神签名组件缺失，请重新安装插件")
+        if not signer_bytes.startswith(b"\x00asm") or len(signer_bytes) > 256 * 1024:
+            logger.error("大神签名 WASM 资源格式无效")
+            return self._page_error("大神签名组件损坏，请重新安装插件")
+        return self._page_ok({"wasm_base64": base64.b64encode(signer_bytes).decode("ascii")})
+
+    @staticmethod
+    def _normalize_dashen_credential(
+        role_id: Any,
+        token: Any,
+        *,
+        updated_at: Any = None,
+    ) -> Dict[str, Any]:
+        role_text = str(role_id or "").strip()
+        if not re.fullmatch(r"[0-9]{1,20}", role_text) or int(role_text) <= 0:
+            raise ValueError("role_id 必须是正整数")
+
+        token_text = str(token or "").strip()
+        if not token_text:
+            raise ValueError("token 不能为空")
+        if len(token_text) > 4096 or any(ord(char) < 32 or ord(char) == 127 for char in token_text):
+            raise ValueError("token 格式无效")
+
+        try:
+            saved_at = int(updated_at or time.time())
+        except (TypeError, ValueError):
+            saved_at = int(time.time())
+        return {
+            "version": 1,
+            "role_id": int(role_text),
+            "token": token_text,
+            "updated_at": saved_at,
+        }
+
+    def _dashen_credential_from_config(self) -> Optional[Dict[str, Any]]:
+        role_id = self.config.get("dashen_role_id", "")
+        token = self.config.get("dashen_token", "")
+        if not role_id or not token:
+            return None
+        try:
+            return self._normalize_dashen_credential(role_id, token)
+        except ValueError:
+            logger.warning("插件配置中的大神凭证格式无效")
+            return None
+
+    async def _load_dashen_credential(self) -> None:
+        stored = await self.get_kv_data(DASHEN_CREDENTIAL_KV_KEY, {})
+        if isinstance(stored, dict) and stored:
+            try:
+                self._dashen_credential = self._normalize_dashen_credential(
+                    stored.get("role_id"),
+                    stored.get("token"),
+                    updated_at=stored.get("updated_at"),
+                )
+                self._dashen_credential_source = "plugin_kv"
+                return
+            except ValueError:
+                logger.warning("AstrBot KV 中的大神凭证格式无效，尝试读取旧配置")
+
+        legacy = self._dashen_credential_from_config()
+        self._dashen_credential = legacy
+        self._dashen_credential_source = "plugin_config" if legacy else "none"
+
+    @staticmethod
+    def _masked_role_id(role_id: Any) -> str:
+        role_text = str(role_id or "")
+        if not role_text:
+            return ""
+        visible = min(4, len(role_text))
+        return f"{'*' * (len(role_text) - visible)}{role_text[-visible:]}"
+
+    def _legacy_dashen_config_present(self) -> bool:
+        return bool(self.config.get("dashen_role_id", "") or self.config.get("dashen_token", ""))
+
+    def _dashen_status_payload(self) -> Dict[str, Any]:
+        credential = self._dashen_credential
+        return {
+            "configured": bool(credential),
+            "source": self._dashen_credential_source,
+            "role_id_masked": self._masked_role_id(credential.get("role_id")) if credential else "",
+            "updated_at": int(credential.get("updated_at") or 0) if credential else 0,
+            "embedded_overstats": self.embedded_overstats,
+            "runtime_applied": bool(credential and self._overstats_server),
+            "legacy_config_present": self._legacy_dashen_config_present(),
+            "can_migrate": self._dashen_credential_source == "plugin_config",
+        }
+
+    def _clear_legacy_dashen_config(self) -> bool:
+        old_role_id = self.config.get("dashen_role_id", "")
+        old_token = self.config.get("dashen_token", "")
+        if not old_role_id and not old_token:
+            return True
+        self.config["dashen_role_id"] = ""
+        self.config["dashen_token"] = ""
+        try:
+            save_config = getattr(self.config, "save_config", None)
+            if callable(save_config):
+                save_config()
+            return True
+        except Exception as exc:
+            self.config["dashen_role_id"] = old_role_id
+            self.config["dashen_token"] = old_token
+            logger.warning(f"清理旧版大神配置失败: {type(exc).__name__}")
+            return False
+
+    async def _persist_dashen_credential(self, credential: Dict[str, Any]) -> bool:
+        await self.put_kv_data(DASHEN_CREDENTIAL_KV_KEY, credential)
+        self._dashen_credential = credential
+        self._dashen_credential_source = "plugin_kv"
+        legacy_cleared = self._clear_legacy_dashen_config()
+        self._apply_dashen_credential()
+        return legacy_cleared
+
+    def _apply_dashen_credential(self) -> None:
+        if "src.client.apiclient" not in sys.modules:
+            return
+        try:
+            from src.client.apiclient import DashenCredential, dashen_api_client
+
+            credential = self._dashen_credential
+            if credential is None:
+                dashen_api_client.clear_credentials()
+                logger.info("大神凭证已从运行时移除")
+                return
+
+            default_server = int(dashen_api_client.client_config.accounts[0].server)
+            dashen_api_client.replace_credentials(
+                [
+                    DashenCredential(
+                        name="plugin-account",
+                        role_id=int(credential["role_id"]),
+                        token=str(credential["token"]),
+                        dts=int(dashen_api_client.client_config.bigdata_dts),
+                        server=default_server,
+                    )
+                ]
+            )
+            logger.info(
+                "大神凭证已应用到运行时: role_id=%s source=%s",
+                self._masked_role_id(credential["role_id"]),
+                self._dashen_credential_source,
+            )
+        except Exception as exc:
+            logger.error(f"更新大神运行时凭证失败: {type(exc).__name__}: {exc}")
+            raise
+
+    @staticmethod
+    def _page_ok(data: Dict[str, Any]):
+        return jsonify({"status": "ok", "data": data})
+
+    @staticmethod
+    def _page_error(message: str):
+        return jsonify({"status": "error", "message": message})
+
+    async def _dashen_auth_status(self):
+        return self._page_ok(self._dashen_status_payload())
+
+    async def _dashen_auth_save(self):
+        payload = await web_request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return self._page_error("请求格式无效")
+        try:
+            credential = self._normalize_dashen_credential(
+                payload.get("role_id"),
+                payload.get("token"),
+            )
+        except ValueError as exc:
+            return self._page_error(str(exc))
+
+        try:
+            async with self._dashen_credential_lock:
+                legacy_cleared = await self._persist_dashen_credential(credential)
+            result = self._dashen_status_payload()
+            result["legacy_config_cleared"] = legacy_cleared
+            return self._page_ok(result)
+        except Exception as exc:
+            logger.error(f"保存大神凭证失败: {type(exc).__name__}")
+            return self._page_error("保存凭证失败，请查看 AstrBot 日志")
+
+    async def _dashen_auth_migrate(self):
+        legacy = self._dashen_credential_from_config()
+        if legacy is None:
+            return self._page_error("没有可迁移的旧版大神配置")
+        try:
+            async with self._dashen_credential_lock:
+                legacy_cleared = await self._persist_dashen_credential(legacy)
+            result = self._dashen_status_payload()
+            result["legacy_config_cleared"] = legacy_cleared
+            return self._page_ok(result)
+        except Exception as exc:
+            logger.error(f"迁移大神凭证失败: {type(exc).__name__}")
+            return self._page_error("迁移凭证失败，请查看 AstrBot 日志")
+
+    async def _dashen_auth_unbind(self):
+        try:
+            async with self._dashen_credential_lock:
+                if not self._clear_legacy_dashen_config():
+                    return self._page_error("旧配置清理失败，未执行解绑")
+                await self.delete_kv_data(DASHEN_CREDENTIAL_KV_KEY)
+                self._dashen_credential = None
+                self._dashen_credential_source = "none"
+                self._apply_dashen_credential()
+            return self._page_ok(self._dashen_status_payload())
+        except Exception as exc:
+            logger.error(f"删除大神凭证失败: {type(exc).__name__}")
+            return self._page_error("解绑失败，请查看 AstrBot 日志")
+
+    @staticmethod
+    def _dashen_qr_session_id(value: Any) -> str:
+        session_id = str(value or "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{20,96}", session_id):
+            raise ValueError("扫码会话无效，请重新获取二维码")
+        return session_id
+
+    @staticmethod
+    def _dashen_cookie_value(client: httpx.AsyncClient, name: str) -> str:
+        for cookie in client.cookies.jar:
+            if cookie.name == name:
+                return str(cookie.value or "")
+        return ""
+
+    @staticmethod
+    def _dashen_web_headers(session: Dict[str, Any]) -> Dict[str, str]:
+        client: httpx.AsyncClient = session["client"]
+        uid = OWStatsPlugin._dashen_cookie_value(client, "GOD_UUID")
+        return {
+            "Accept": "application/json, text/plain, */*",
+            "GL-ClientType": "61",
+            "GL-DeviceId": str(session["device_id"]),
+            "GL-Uid": uid,
+            "GL-X-XSRF-TOKEN": OWStatsPlugin._dashen_cookie_value(client, "GL-XSRF-TOKEN"),
+            "Origin": "https://ds.163.com",
+            "Referer": "https://ds.163.com/",
+        }
+
+    @staticmethod
+    def _dashen_report_body(role_id: Any) -> str:
+        return json.dumps(
+            {
+                "appKey": "bn",
+                "roleId": str(role_id),
+                "server": "1",
+                "source": 1,
+                "type": "yearly",
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+
+    @staticmethod
+    def _dashen_signed_web_headers(
+        session: Dict[str, Any],
+        body: str,
+        signature: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, str]:
+        xsrf_token = OWStatsPlugin._dashen_cookie_value(session["client"], "GL-XSRF-TOKEN")
+        if not xsrf_token:
+            raise ValueError("网易大神登录凭证缺少 XSRF 信息")
+        headers = OWStatsPlugin._dashen_web_headers(session)
+        checksum = (
+            str(signature["sign"])
+            if signature
+            else hashlib.md5(f"{body}{xsrf_token}".encode("utf-8")).hexdigest()
+        )
+        nonce = str(signature["timestamp"]) if signature else str(int(time.time() * 1000))
+        headers.update(
+            {
+                "Content-Type": "application/json;charset=UTF-8",
+                "GL-CheckSum": checksum,
+                "GL-Nonce": nonce,
+            }
+        )
+        if signature and signature.get("user_agent"):
+            headers["User-Agent"] = str(signature["user_agent"])
+        return headers
+
+    @staticmethod
+    def _normalize_dashen_signature(value: Any) -> Dict[str, str]:
+        if not isinstance(value, dict):
+            raise ValueError("大神签名尚未生成，请刷新页面后重试")
+        sign = str(value.get("sign") or "").strip()
+        try:
+            timestamp = int(value.get("timestamp"))
+        except (TypeError, ValueError):
+            timestamp = 0
+        if (
+            not 16 <= len(sign) <= 512
+            or any(ord(char) < 33 or ord(char) == 127 for char in sign)
+            or abs(int(time.time() * 1000) - timestamp) > 5 * 60 * 1000
+        ):
+            raise ValueError("大神页面签名无效或已过期，请重试")
+        user_agent = str(value.get("user_agent") or "").strip()
+        if (
+            not 16 <= len(user_agent) <= 512
+            or any(ord(char) < 32 or ord(char) == 127 for char in user_agent)
+        ):
+            raise ValueError("大神页面签名缺少浏览器标识，请刷新页面后重试")
+        return {
+            "sign": sign,
+            "timestamp": str(timestamp),
+            "user_agent": user_agent,
+        }
+
+    @staticmethod
+    def _normalize_dashen_signer_version(value: Any) -> str:
+        version = str(value or "").strip()
+        if (
+            not 1 <= len(version) <= 256
+            or any(ord(char) < 33 or ord(char) == 127 for char in version)
+        ):
+            raise ValueError("大神签名组件版本无效，请刷新页面后重试")
+        return version
+
+    @staticmethod
+    def _dashen_auth_url_candidates(payload: Any) -> List[str]:
+        """Extract login hand-off URLs without exposing unrelated response values."""
+        url_keys = {
+            "crosssetcookieurl",
+            "crosssetcookieurls",
+            "crosscookieurl",
+            "crosscookieurls",
+            "setcookieurl",
+            "setcookieurls",
+            "redirecturl",
+            "redirecturls",
+            "loginurl",
+            "loginurls",
+        }
+        envelope_keys = {"content", "data", "result"}
+        candidates: List[str] = []
+
+        def append_value(value: Any, depth: int = 0, allow_plain_url: bool = False) -> None:
+            if depth > 6 or len(candidates) >= 24:
+                return
+            if isinstance(value, str):
+                text = value.strip()
+                if not text:
+                    return
+                if text[:1] in {"[", "{"}:
+                    try:
+                        append_value(json.loads(text), depth + 1, allow_plain_url)
+                        return
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        pass
+                parts = re.split(r"\s*,\s*(?=(?:https?:)?//)", text)
+                candidates.extend(part for part in parts if part.strip())
+                return
+            if isinstance(value, (list, tuple)):
+                for item in value[:24]:
+                    append_value(item, depth + 1, allow_plain_url)
+                return
+            if not isinstance(value, dict):
+                return
+            for key, item in value.items():
+                normalized = re.sub(r"[^a-z0-9]", "", str(key).lower())
+                if normalized in url_keys or (allow_plain_url and normalized in {"url", "urls"}):
+                    append_value(item, depth + 1, True)
+            for key, item in value.items():
+                normalized = re.sub(r"[^a-z0-9]", "", str(key).lower())
+                if normalized in envelope_keys:
+                    append_value(item, depth + 1)
+
+        append_value(payload)
+        return list(dict.fromkeys(item.strip() for item in candidates if item.strip()))[:24]
+
+    @staticmethod
+    def _dashen_payload_key_paths(payload: Any) -> List[str]:
+        paths: List[str] = []
+
+        def visit(value: Any, prefix: str = "", depth: int = 0) -> None:
+            if depth > 3 or len(paths) >= 32:
+                return
+            if isinstance(value, dict):
+                for raw_key, item in list(value.items())[:32]:
+                    key = re.sub(r"[^A-Za-z0-9_-]", "", str(raw_key))[:48] or "?"
+                    path = f"{prefix}.{key}" if prefix else key
+                    paths.append(path)
+                    if isinstance(item, (dict, list)):
+                        visit(item, path, depth + 1)
+                    elif isinstance(item, str) and item.strip()[:1] in {"[", "{"}:
+                        try:
+                            visit(json.loads(item), path, depth + 1)
+                        except (TypeError, ValueError, json.JSONDecodeError):
+                            pass
+            elif isinstance(value, list):
+                for item in value[:3]:
+                    visit(item, prefix, depth + 1)
+
+        visit(payload)
+        return paths
+
+    @staticmethod
+    def _dashen_cross_cookie_url(raw_url: Any, session: Dict[str, Any]) -> Optional[str]:
+        url = str(raw_url or "").strip()
+        if not url or len(url) > 2048:
+            return None
+        if url.startswith("//"):
+            url = "https:" + url
+        try:
+            parts = urlsplit(url)
+        except ValueError:
+            return None
+        hostname = (parts.hostname or "").lower().rstrip(".")
+        allowed_suffixes = (".163.com", ".126.com", ".yeah.net", ".netease.com", ".166.net")
+        if (
+            parts.scheme not in {"http", "https"}
+            or not hostname
+            or parts.username is not None
+            or parts.password is not None
+            or not any(hostname == suffix[1:] or hostname.endswith(suffix) for suffix in allowed_suffixes)
+        ):
+            return None
+        query = [
+            (key, value)
+            for key, value in parse_qsl(parts.query, keep_blank_values=True)
+            if key not in {"uuid", "product", "rtid"}
+        ]
+        query.extend(
+            [
+                ("uuid", str(session["urs_uuid"])),
+                ("product", DASHEN_QR_PRODUCT),
+            ]
+        )
+        return urlunsplit(("https", parts.netloc, parts.path, urlencode(query), parts.fragment))
+
+    async def _dashen_qr_lookup(self, session_id: str) -> Optional[Dict[str, Any]]:
+        async with self._dashen_qr_sessions_lock:
+            return self._dashen_qr_sessions.get(session_id)
+
+    async def _dashen_qr_drop(
+        self,
+        session_id: str,
+        *,
+        expected: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        async with self._dashen_qr_sessions_lock:
+            session = self._dashen_qr_sessions.get(session_id)
+            if session is None or (expected is not None and session is not expected):
+                return
+            self._dashen_qr_sessions.pop(session_id, None)
+        async with session["lock"]:
+            if not session.get("closed"):
+                session["closed"] = True
+                await session["client"].aclose()
+
+    async def _dashen_qr_prune(self) -> None:
+        now = time.time()
+        async with self._dashen_qr_sessions_lock:
+            sessions = sorted(
+                self._dashen_qr_sessions.items(),
+                key=lambda item: float(item[1].get("created_at") or 0),
+            )
+            stale_ids = [
+                session_id
+                for session_id, session in sessions
+                if float(session.get("expires_at") or 0) <= now
+            ]
+            remaining = len(sessions) - len(stale_ids)
+            if remaining >= DASHEN_QR_MAX_SESSIONS:
+                for session_id, _session in sessions:
+                    if session_id not in stale_ids:
+                        stale_ids.append(session_id)
+                        remaining -= 1
+                        if remaining < DASHEN_QR_MAX_SESSIONS:
+                            break
+        for session_id in stale_ids:
+            await self._dashen_qr_drop(session_id)
+
+    @staticmethod
+    def _dashen_qr_uuid(payload: Any) -> str:
+        if isinstance(payload, dict) and isinstance(payload.get("content"), str):
+            try:
+                payload = json.loads(payload["content"])
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
+        value = payload.get("l", {}).get("i") if isinstance(payload, dict) else ""
+        uuid = str(value or "").strip()
+        if not re.fullmatch(r"[0-9a-fA-F]{32}", uuid):
+            raise ValueError("网易二维码服务返回了无效会话")
+        return uuid
+
+    @staticmethod
+    def _dashen_response_json(response: httpx.Response) -> Dict[str, Any]:
+        try:
+            payload = response.json()
+        except json.JSONDecodeError:
+            text = response.text.strip()
+            start = text.find("{")
+            end = text.rfind("}")
+            if start < 0 or end < start or len(text) > 1024 * 1024:
+                raise
+            payload = json.loads(text[start : end + 1])
+        if not isinstance(payload, dict):
+            raise ValueError("网易服务返回格式无效")
+        return payload
+
+    async def _dashen_qr_start(self):
+        await self._dashen_qr_prune()
+        client = httpx.AsyncClient(
+            timeout=httpx.Timeout(15.0, connect=10.0),
+            follow_redirects=True,
+            headers={
+                "Accept": "application/json, text/plain, */*",
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+                ),
+            },
+        )
+        try:
+            response = await client.get(
+                f"{DASHEN_QR_API_ROOT}/getqrcodeid",
+                params={"product": DASHEN_QR_PRODUCT, "usage": 0},
+            )
+            response.raise_for_status()
+            urs_uuid = self._dashen_qr_uuid(self._dashen_response_json(response))
+            now = time.time()
+            session_id = secrets.token_urlsafe(32)
+            session = {
+                "session_id": session_id,
+                "urs_uuid": urs_uuid,
+                "device_id": str(uuid.uuid4()),
+                "created_at": now,
+                "expires_at": now + DASHEN_QR_TTL_SECONDS,
+                "state": "waiting_scan",
+                "confirming": False,
+                "authorized": False,
+                "roles": [],
+                "client": client,
+                "lock": asyncio.Lock(),
+                "closed": False,
+            }
+            image_params = {
+                "uuid": urs_uuid,
+                "size": 260,
+                "format": "png",
+                "product": DASHEN_QR_PRODUCT,
+                "url": "https://ds.163.com",
+                "url2": "https://ds.163.com",
+            }
+            image_bytes = b""
+            for attempt in range(3):
+                image_response = await client.get(
+                    f"{DASHEN_QR_API_ROOT}/getGeneralUrlQrcode",
+                    params=image_params,
+                    headers={"Accept": "image/png,image/*;q=0.9,*/*;q=0.8"},
+                )
+                image_response.raise_for_status()
+                image_bytes = image_response.content
+                if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+                    break
+                if attempt < 2:
+                    await asyncio.sleep(0.15)
+            if not image_bytes.startswith(b"\x89PNG\r\n\x1a\n") or len(image_bytes) > 256 * 1024:
+                raise ValueError("网易二维码服务返回了无效图片")
+            async with self._dashen_qr_sessions_lock:
+                self._dashen_qr_sessions[session_id] = session
+            return self._page_ok(
+                {
+                    "session_id": session_id,
+                    "state": "waiting_scan",
+                    "qr_image": "data:image/png;base64," + base64.b64encode(image_bytes).decode("ascii"),
+                    "expires_in": DASHEN_QR_TTL_SECONDS,
+                    "poll_interval_ms": DASHEN_QR_POLL_INTERVAL_MS,
+                }
+            )
+        except (httpx.HTTPError, ValueError, json.JSONDecodeError) as exc:
+            await client.aclose()
+            logger.warning(f"创建大神扫码会话失败: {type(exc).__name__}")
+            return self._page_error("获取网易大神二维码失败，请稍后重试")
+
+    async def _dashen_apply_cross_cookies(self, session: Dict[str, Any], payload: Dict[str, Any]) -> None:
+        urls = [
+            url
+            for url in (
+                self._dashen_cross_cookie_url(item, session)
+                for item in self._dashen_auth_url_candidates(payload)
+            )
+            if url is not None
+        ][:12]
+        if not urls:
+            key_paths = self._dashen_payload_key_paths(payload)
+            shape = ",".join(key_paths[:16]) or "empty"
+            logger.warning(f"网易扫码授权响应缺少可用地址，字段路径: {shape}")
+            raise ValueError(f"网易登录响应未包含有效授权地址（字段：{shape}）")
+        succeeded = 0
+        for url in urls:
+            try:
+                response = await session["client"].get(url)
+                if response.status_code < 500:
+                    succeeded += 1
+            except httpx.HTTPError:
+                continue
+        if succeeded == 0:
+            raise ValueError("网易登录授权 Cookie 写入失败")
+
+    async def _dashen_prepare_web_login(self, session: Dict[str, Any]) -> bool:
+        client: httpx.AsyncClient = session["client"]
+        preflight_response = await client.get(
+            f"{DASHEN_INFO_API_ROOT}/v1/web/base/mine/userInfo",
+            headers=self._dashen_web_headers(session),
+        )
+        preflight_response.raise_for_status()
+        preflight_payload = self._dashen_response_json(preflight_response)
+        if int(preflight_payload.get("code") or 0) == 200:
+            preflight_result = preflight_payload.get("result")
+            preflight_user = (
+                preflight_result.get("user") if isinstance(preflight_result, dict) else None
+            )
+            if isinstance(preflight_user, dict):
+                session["uid"] = str(preflight_user.get("uid") or "")
+            cst = self._dashen_cookie_value(client, "cst").strip()
+            time_diff_text = self._dashen_cookie_value(client, "time_diff").strip()
+            if cst and len(cst) <= 4096 and not any(ord(char) < 32 for char in cst):
+                try:
+                    time_diff = int(time_diff_text or 0)
+                except ValueError:
+                    time_diff = 0
+                session["signing_context"] = {
+                    "csrf": self._dashen_cookie_value(client, "GL-XSRF-TOKEN"),
+                    "cst": cst,
+                    "time_diff": str(time_diff),
+                }
+                return True
+
+        csrf = self._dashen_cookie_value(client, "GL-XSRF-TOKEN").strip()
+        if not csrf:
+            raise ValueError("网易大神网页登录缺少 XSRF 签名上下文")
+        session["login_signing_context"] = {"csrf": csrf}
+        return False
+
+    async def _dashen_web_login(
+        self,
+        session: Dict[str, Any],
+        signer_version: str,
+        signature: Dict[str, str],
+    ) -> None:
+        client: httpx.AsyncClient = session["client"]
+        response = await client.post(
+            f"{DASHEN_INFO_API_ROOT}/v1/web/base/login",
+            params={"csv": signer_version},
+            content=b"null",
+            headers=self._dashen_signed_web_headers(session, "null", signature),
+        )
+        response.raise_for_status()
+        payload = self._dashen_response_json(response)
+        code = int(payload.get("code") or 0)
+        if code != 200:
+            logger.warning(f"网易大神网页登录初始化失败，响应码: {code}")
+            message = str(payload.get("errmsg") or payload.get("message") or "")[:120]
+            raise ValueError(message or "网易大神网页登录初始化失败")
+
+        result = payload.get("result")
+        if not isinstance(result, dict):
+            raise ValueError("网易大神网页登录初始化返回格式无效")
+        cst = str(result.get("cst") or "").strip()
+        try:
+            server_timestamp = int(result.get("timestamp"))
+        except (TypeError, ValueError):
+            server_timestamp = 0
+        if cst and server_timestamp > 0:
+            time_diff = int(time.time() * 1000) - server_timestamp
+            client.cookies.set("cst", cst, domain=".ds.163.com", path="/")
+            client.cookies.set("time_diff", str(time_diff), domain=".ds.163.com", path="/")
+            session["signing_context"] = {
+                "csrf": self._dashen_cookie_value(client, "GL-XSRF-TOKEN"),
+                "cst": cst,
+                "time_diff": str(time_diff),
+            }
+            session.pop("login_signing_context", None)
+        else:
+            raise ValueError("网易大神登录响应缺少签名上下文")
+        user = result.get("user")
+        if isinstance(user, dict):
+            session["uid"] = str(user.get("uid") or "")
+
+    async def _dashen_fetch_roles(
+        self,
+        session: Dict[str, Any],
+        signature: Dict[str, str],
+    ) -> List[Dict[str, Any]]:
+        client: httpx.AsyncClient = session["client"]
+        user_response = await client.get(
+            f"{DASHEN_INFO_API_ROOT}/v1/web/base/mine/userInfo",
+            headers=self._dashen_web_headers(session),
+        )
+        user_response.raise_for_status()
+        user_payload = self._dashen_response_json(user_response)
+        user_code = int(user_payload.get("code") or 0)
+        if user_code != 200:
+            logger.warning(f"网易大神 userInfo 登录校验失败，响应码: {user_code}")
+            raise ValueError("网易大神网页登录状态未生效")
+        user_result = user_payload.get("result")
+        user = user_result.get("user", {}) if isinstance(user_result, dict) else {}
+        if isinstance(user, dict):
+            session["uid"] = str(user.get("uid") or "")
+
+        role_body = json.dumps({"appKey": "bn"}, ensure_ascii=False, separators=(",", ":"))
+        role_response = await client.post(
+            f"{DASHEN_INFO_API_ROOT}/v1/web/role-web/list/getRoleBindingListByAppKey",
+            content=role_body.encode("utf-8"),
+            headers=self._dashen_signed_web_headers(session, role_body, signature),
+        )
+        role_response.raise_for_status()
+        role_payload = self._dashen_response_json(role_response)
+        role_code = int(role_payload.get("code") or 0)
+        if role_code != 200:
+            message = str(role_payload.get("errmsg") or role_payload.get("message") or "")[:120]
+            logger.warning(
+                "网易大神战网账号 ID 列表失败，响应码: %s，消息: %s",
+                role_code,
+                message or "-",
+            )
+            raise ValueError(message or f"读取战网账号 ID 失败（响应码 {role_code}）")
+
+        raw_roles = role_payload.get("result")
+        if not isinstance(raw_roles, list):
+            raw_roles = []
+        roles: List[Dict[str, Any]] = []
+        seen = set()
+        for raw_role in raw_roles[:30]:
+            if not isinstance(raw_role, dict):
+                continue
+            app_role = raw_role.get("appRoleDto")
+            if not isinstance(app_role, dict):
+                app_role = raw_role
+            role_text = str(app_role.get("roleId") or app_role.get("role_id") or "").strip()
+            if not re.fullmatch(r"[0-9]{1,20}", role_text) or int(role_text) <= 0 or role_text in seen:
+                continue
+            seen.add(role_text)
+            name = str(
+                app_role.get("nick")
+                or app_role.get("name")
+                or app_role.get("roleName")
+                or "战网账号"
+            ).strip()[:80]
+            server = str(
+                app_role.get("serverName")
+                or app_role.get("subtitle")
+                or app_role.get("server")
+                or ""
+            ).strip()[:80]
+            roles.append(
+                {
+                    "role_id": role_text,
+                    "name": name or "战网账号",
+                    "server": server,
+                }
+            )
+        if not roles:
+            raise ValueError("该网易大神账号尚未绑定战网账号 ID")
+        return roles
+
+    async def _dashen_finish_qr_login(
+        self,
+        session: Dict[str, Any],
+        payload: Dict[str, Any],
+    ) -> None:
+        await self._dashen_apply_cross_cookies(session, payload)
+        session["authorized"] = True
+        session["state"] = "processing"
+        if await self._dashen_prepare_web_login(session):
+            session["state"] = "signing_required"
+        else:
+            session["state"] = "login_signature_required"
+
+    @staticmethod
+    def _dashen_qr_public_state(session: Dict[str, Any]) -> Dict[str, Any]:
+        state = str(session.get("state") or "waiting_scan")
+        data: Dict[str, Any] = {
+            "state": state,
+            "expires_in": max(0, int(float(session.get("expires_at") or 0) - time.time())),
+            "poll_interval_ms": DASHEN_QR_POLL_INTERVAL_MS,
+        }
+        if state == "login_signature_required":
+            context = session.get("login_signing_context")
+            if isinstance(context, dict):
+                data["signing_context"] = {
+                    "csrf": str(context.get("csrf") or ""),
+                }
+        elif state == "signing_required":
+            context = session.get("signing_context")
+            if isinstance(context, dict):
+                data["signing_context"] = {
+                    "csrf": str(context.get("csrf") or ""),
+                    "cst": str(context.get("cst") or ""),
+                    "time_diff": str(context.get("time_diff") or "0"),
+                }
+        elif state == "roles_ready":
+            data["roles"] = session.get("roles") or []
+        return data
+
+    async def _dashen_qr_status(self):
+        payload = await web_request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return self._page_error("请求格式无效")
+        try:
+            session_id = self._dashen_qr_session_id(payload.get("session_id"))
+        except ValueError as exc:
+            return self._page_error(str(exc))
+        session = await self._dashen_qr_lookup(session_id)
+        if session is None:
+            return self._page_error("扫码会话已失效，请重新获取二维码")
+        role_signature: Optional[Dict[str, str]] = None
+        if payload.get("role_signature") is not None:
+            try:
+                role_signature = self._normalize_dashen_signature(payload.get("role_signature"))
+            except ValueError as exc:
+                return self._page_error(str(exc))
+        login_signature: Optional[Dict[str, str]] = None
+        if payload.get("login_signature") is not None:
+            try:
+                login_signature = self._normalize_dashen_signature(payload.get("login_signature"))
+            except ValueError as exc:
+                return self._page_error(str(exc))
+        signer_version: Optional[str] = None
+        if payload.get("signer_version") is not None:
+            try:
+                signer_version = self._normalize_dashen_signer_version(
+                    payload.get("signer_version")
+                )
+            except ValueError as exc:
+                return self._page_error(str(exc))
+
+        should_drop = False
+        result: Optional[Dict[str, Any]] = None
+        error_message = ""
+        async with session["lock"]:
+            if session.get("closed") or float(session.get("expires_at") or 0) <= time.time():
+                should_drop = True
+                result = {"state": "expired", "expires_in": 0}
+            elif session.get("authorized"):
+                try:
+                    if (
+                        session.get("state") == "login_signature_required"
+                        and login_signature
+                        and signer_version
+                    ):
+                        session["state"] = "processing"
+                        await self._dashen_web_login(
+                            session,
+                            signer_version,
+                            login_signature,
+                        )
+                        session["state"] = "signing_required"
+                    elif session.get("state") == "signing_required" and role_signature:
+                        session["state"] = "processing"
+                        session["roles"] = await self._dashen_fetch_roles(session, role_signature)
+                        session["state"] = "roles_ready"
+                    result = self._dashen_qr_public_state(session)
+                except (httpx.HTTPError, ValueError, json.JSONDecodeError) as exc:
+                    logger.warning(f"大神扫码授权签名处理失败: {type(exc).__name__}")
+                    session["state"] = "error"
+                    should_drop = True
+                    error_message = (
+                        str(exc)
+                        if isinstance(exc, ValueError)
+                        else "连接网易大神失败，请稍后重试"
+                    )
+                    result = {"state": "error", "expires_in": 0}
+            else:
+                try:
+                    endpoint = "qrcodeauth" if session.get("confirming") else "qrcodeauthstatus"
+                    params: Dict[str, Any] = {
+                        "uuid": session["urs_uuid"],
+                        "product": DASHEN_QR_PRODUCT,
+                    }
+                    if session.get("confirming"):
+                        params.update({"domains": "", "newQrCode": 1})
+                    response = await session["client"].get(f"{DASHEN_QR_API_ROOT}/{endpoint}", params=params)
+                    response.raise_for_status()
+                    qr_payload = self._dashen_response_json(response)
+                    ret_code = str(qr_payload.get("retCode") or "")
+                    if ret_code == "408":
+                        session["state"] = "waiting_confirm" if session.get("confirming") else "waiting_scan"
+                    elif ret_code == "409" or (ret_code == "200" and not qr_payload.get("userName")):
+                        session["confirming"] = True
+                        session["state"] = "waiting_confirm"
+                    elif ret_code == "200":
+                        await self._dashen_finish_qr_login(session, qr_payload)
+                    elif ret_code in {"401", "404"}:
+                        should_drop = True
+                        session["state"] = "expired"
+                    else:
+                        should_drop = True
+                        session["state"] = "error"
+                        error_message = "网易扫码登录失败，请重新获取二维码"
+                    result = self._dashen_qr_public_state(session)
+                except (httpx.HTTPError, ValueError, json.JSONDecodeError) as exc:
+                    logger.warning(f"大神扫码状态处理失败: {type(exc).__name__}")
+                    session["state"] = "error"
+                    should_drop = True
+                    error_message = str(exc) if isinstance(exc, ValueError) else "连接网易大神失败，请稍后重试"
+                    result = {"state": "error", "expires_in": 0}
+
+        if should_drop:
+            await self._dashen_qr_drop(session_id, expected=session)
+        if error_message:
+            return self._page_error(error_message)
+        return self._page_ok(result or {"state": "error", "expires_in": 0})
+
+    async def _dashen_qr_complete(self):
+        payload = await web_request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return self._page_error("请求格式无效")
+        try:
+            session_id = self._dashen_qr_session_id(payload.get("session_id"))
+            role_id = str(payload.get("role_id") or "").strip()
+            signature = self._normalize_dashen_signature(payload.get("signature"))
+        except ValueError as exc:
+            return self._page_error(str(exc))
+        session = await self._dashen_qr_lookup(session_id)
+        if session is None:
+            return self._page_error("扫码会话已失效，请重新获取二维码")
+
+        completed = False
+        response_data: Dict[str, Any] = {}
+        async with session["lock"]:
+            if session.get("closed") or float(session.get("expires_at") or 0) <= time.time():
+                return self._page_error("扫码会话已过期，请重新获取二维码")
+            role_ids = {str(role.get("role_id")) for role in session.get("roles") or []}
+            if session.get("state") != "roles_ready" or role_id not in role_ids:
+                return self._page_error("战网账号 ID 无效，请重新扫码")
+            body = self._dashen_report_body(role_id)
+            try:
+                token_response = await session["client"].post(
+                    f"{DASHEN_INFO_API_ROOT}/v1/web/game/report/getReportToken",
+                    content=body.encode("utf-8"),
+                    headers=self._dashen_signed_web_headers(session, body, signature),
+                )
+                token_response.raise_for_status()
+                token_payload = self._dashen_response_json(token_response)
+                token_result = token_payload.get("result")
+                token = token_result.get("token") if isinstance(token_result, dict) else ""
+                result_role_id = token_result.get("roleId") if isinstance(token_result, dict) else role_id
+                if int(token_payload.get("code") or 0) != 200 or not token:
+                    message = str(token_payload.get("errmsg") or token_payload.get("message") or "")[:120]
+                    raise ValueError(message or "网易大神 token 转换失败")
+                credential = self._normalize_dashen_credential(result_role_id or role_id, token)
+                async with self._dashen_credential_lock:
+                    legacy_cleared = await self._persist_dashen_credential(credential)
+                response_data = self._dashen_status_payload()
+                response_data["legacy_config_cleared"] = legacy_cleared
+                response_data["qr_completed"] = True
+                session["state"] = "success"
+                completed = True
+            except (httpx.HTTPError, ValueError, json.JSONDecodeError) as exc:
+                logger.warning(f"大神 token 转换失败: {type(exc).__name__}")
+                if isinstance(exc, ValueError):
+                    return self._page_error(str(exc))
+                return self._page_error("连接网易大神失败，请稍后重试")
+
+        if completed:
+            await self._dashen_qr_drop(session_id, expected=session)
+        return self._page_ok(response_data)
+
+    async def _dashen_qr_cancel(self):
+        payload = await web_request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return self._page_error("请求格式无效")
+        try:
+            session_id = self._dashen_qr_session_id(payload.get("session_id"))
+        except ValueError as exc:
+            return self._page_error(str(exc))
+        await self._dashen_qr_drop(session_id)
+        return self._page_ok({"cancelled": True})
 
     def _start_embedded_overstats(self):
         """启动内置的 Overstats HTTP 服务"""
@@ -50,34 +1106,6 @@ class OWStatsPlugin(Star):
             if overstats_dir not in sys.path:
                 sys.path.insert(0, overstats_dir)
 
-            # 注入插件配置的大神账号
-            dashen_role_id = self.config.get("dashen_role_id", "")
-            dashen_token = self.config.get("dashen_token", "")
-            logger.info(f"大神配置: role_id={dashen_role_id}, token={'***' if dashen_token else '未配置'}")
-            if dashen_role_id and dashen_token:
-                # 直接修改 Overstats 配置文件，确保所有导入路径都能读到
-                config_file = Path(overstats_dir) / "config" / "config.py"
-                config_content = config_file.read_text(encoding="utf-8")
-                # 替换 DASHEN_ACCOUNTS
-                import re
-                new_accounts = f'''DASHEN_ACCOUNTS = [
-    {{
-        "name": "plugin-account",
-        "role_id": {dashen_role_id},
-        "token": "{dashen_token}",
-    }},
-]'''
-                config_content = re.sub(
-                    r'DASHEN_ACCOUNTS\s*=\s*\[.*?\]',
-                    new_accounts,
-                    config_content,
-                    flags=re.DOTALL
-                )
-                config_file.write_text(config_content, encoding="utf-8")
-                logger.info("已注入大神账号配置到配置文件")
-            else:
-                logger.warning("请在 Astrbot WebUI 插件配置中填写 dashen_role_id 和 dashen_token，否则查询功能将无法使用")
-
             # 清除模块缓存，确保读取到修改后的配置文件
             for mod_name in list(sys.modules.keys()):
                 if mod_name.startswith("config") or mod_name.startswith("overstats"):
@@ -85,6 +1113,17 @@ class OWStatsPlugin(Star):
 
             # 导入 config.config 模块（不是 config 包）
             from config import config as overstats_config
+
+            if self._dashen_credential:
+                overstats_config.DASHEN_ACCOUNTS = [
+                    {
+                        "name": "plugin-account",
+                        "role_id": int(self._dashen_credential["role_id"]),
+                        "token": str(self._dashen_credential["token"]),
+                    }
+                ]
+            else:
+                logger.warning("尚未配置大神凭证，请在插件详情页打开“大神账号授权”")
 
             # 禁用 Overstats 内置 AI，使用 Astrbot 的 LLM
             overstats_config.ANALYSIS_BASE_URL = ""
@@ -123,6 +1162,7 @@ class OWStatsPlugin(Star):
                 dashen_max_accepted_requests=api_config.dashen_max_accepted_requests,
             )
             self._overstats_server = create_server(api_config)
+            self._apply_dashen_credential()
 
             # 在后台线程中运行服务器
             self._overstats_thread = threading.Thread(
@@ -236,6 +1276,10 @@ class OWStatsPlugin(Star):
 
     async def terminate(self):
         """插件卸载时停止服务"""
+        async with self._dashen_qr_sessions_lock:
+            qr_session_ids = list(self._dashen_qr_sessions)
+        for session_id in qr_session_ids:
+            await self._dashen_qr_drop(session_id)
         await self.client.aclose()
 
         # 停止内置 Overstats 服务
@@ -428,7 +1472,9 @@ class OWStatsPlugin(Star):
     async def _call_astrbot_llm(self, event: AstrMessageEvent, prompt: str) -> Optional[str]:
         """调用 Astrbot 的 LLM Provider"""
         try:
-            provider_id = await self.context.get_current_chat_provider_id(umo=event.unified_msg_origin)
+            provider_id = self.llm_provider_id
+            if not provider_id:
+                provider_id = await self.context.get_current_chat_provider_id(umo=event.unified_msg_origin)
             if not provider_id:
                 return None
             resp = await self.context.llm_generate(chat_provider_id=provider_id, prompt=prompt)

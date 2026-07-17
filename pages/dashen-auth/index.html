@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>大神账号授权</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">OWSTATS CREDENTIALS</p>
+          <h1>大神账号授权</h1>
+          <p class="subtitle">凭证只保存在 AstrBot 插件独立存储中，页面不会读取或回显已保存的 token。</p>
+        </div>
+        <span id="statusBadge" class="badge badge-muted">正在读取</span>
+      </header>
+
+      <section class="panel" aria-labelledby="qrTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="qrTitle">网易大神扫码一键授权</h2>
+            <p>使用网易大神 App 扫码并确认。插件会自动读取已绑定的战网账号 ID 并转换 token。</p>
+          </div>
+          <button id="startQrButton" class="button button-primary" type="button">获取二维码</button>
+        </div>
+
+        <div id="qrStage" class="qr-stage" hidden>
+          <div class="qr-visual">
+            <img id="qrImage" alt="网易大神登录二维码" width="260" height="260" />
+            <div id="qrOverlay" class="qr-overlay" hidden>
+              <strong id="qrOverlayTitle">二维码已失效</strong>
+              <button id="retryQrButton" class="button button-primary" type="button">重新获取</button>
+            </div>
+          </div>
+          <div class="qr-progress">
+            <span id="qrStateBadge" class="badge badge-active">等待扫码</span>
+            <h3 id="qrStateTitle">打开网易大神 App 扫描二维码</h3>
+            <p id="qrStateText">扫码后请在手机上确认登录，本页会自动继续。</p>
+            <p id="qrCountdown" class="countdown"></p>
+            <ol class="flow-list">
+              <li id="flowScan" class="is-current">扫描二维码</li>
+              <li id="flowConfirm">手机确认登录</li>
+              <li id="flowRole">识别战网账号 ID</li>
+              <li id="flowToken">转换并保存 token</li>
+            </ol>
+            <button id="cancelQrButton" class="button button-secondary" type="button">取消扫码</button>
+          </div>
+        </div>
+
+        <div id="rolePanel" class="role-panel" hidden>
+          <div>
+            <h3>选择战网账号 ID</h3>
+            <p>检测到多个已绑定账号，请选择要用于战绩查询的战网账号 ID。</p>
+          </div>
+          <div id="roleList" class="role-list" role="radiogroup" aria-label="战网账号 ID"></div>
+          <button id="completeQrButton" class="button button-primary" type="button">转换并安全保存</button>
+        </div>
+
+        <div class="notice notice-info">
+          登录与签名使用网易官方服务；登录 Cookie 只存在于后端内存会话中，临时签名上下文仅在计算期间注入页面并立即清除，完成、取消或五分钟过期后销毁。
+        </div>
+      </section>
+
+      <section class="panel status-grid" aria-labelledby="statusTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="statusTitle">当前状态</h2>
+            <p>保存后会立即更新运行中的内置 Overstats，无需重启插件。</p>
+          </div>
+          <button id="refreshButton" class="button button-secondary" type="button">刷新</button>
+        </div>
+        <dl class="details">
+          <div><dt>战网账号 ID</dt><dd id="roleValue">—</dd></div>
+          <div><dt>凭证来源</dt><dd id="sourceValue">—</dd></div>
+          <div><dt>更新时间</dt><dd id="updatedValue">—</dd></div>
+          <div><dt>运行状态</dt><dd id="runtimeValue">—</dd></div>
+        </dl>
+        <div id="legacyWarning" class="notice notice-warning" hidden>
+          旧插件配置中仍存在凭证副本。请迁移或重新保存，插件会尝试清理旧副本。
+        </div>
+        <div id="externalWarning" class="notice notice-warning" hidden>
+          当前关闭了内置 Overstats；这里保存的凭证不会自动同步到外部 Overstats 服务。
+        </div>
+        <div class="actions">
+          <button id="migrateButton" class="button button-secondary" type="button" hidden>迁移现有插件配置</button>
+          <button id="unbindButton" class="button button-danger" type="button">解绑并删除凭证</button>
+        </div>
+        <div id="unbindConfirm" class="confirm-panel" hidden>
+          <div>
+            <strong>确定删除大神凭证吗？</strong>
+            <p>删除后战绩查询将无法使用，重新授权后才能恢复。</p>
+          </div>
+          <div class="actions">
+            <button id="cancelUnbindButton" class="button button-secondary" type="button">取消</button>
+            <button id="confirmUnbindButton" class="button button-danger" type="button">确认删除</button>
+          </div>
+        </div>
+      </section>
+
+      <details class="panel manual-panel">
+        <summary>手动录入战网账号 ID 和 token（备用）</summary>
+        <p>扫码或网易服务暂时不可用时，可继续使用手动获取的凭证。</p>
+        <form id="credentialForm" autocomplete="off">
+          <label>
+            <span>战网账号 ID（role_id）</span>
+            <input id="roleInput" name="role_id" inputmode="numeric" pattern="[0-9]+" maxlength="20" required />
+          </label>
+          <label>
+            <span>大神 token</span>
+            <input id="tokenInput" name="token" type="password" maxlength="4096" required autocomplete="new-password" />
+          </label>
+          <button id="saveButton" class="button button-primary" type="submit">安全保存并应用</button>
+        </form>
+      </details>
+
+      <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+    </main>
+    <script src="./vendor/sig/bootstrap.js"></script>
+    <script src="./vendor/sig/046dd0fe4cb367dce119.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

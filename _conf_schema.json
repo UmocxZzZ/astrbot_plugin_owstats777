@@ -18,15 +18,15 @@
     "default": "http://127.0.0.1:18080"
   },
   "dashen_role_id": {
-    "description": "大神 role_id",
+    "description": "大神 role_id（旧版备用）",
     "type": "string",
-    "hint": "从大神充值中心 F12 抓取",
+    "hint": "推荐在插件详情页打开“大神账号授权”保存或迁移凭证",
     "default": ""
   },
   "dashen_token": {
-    "description": "大神 token",
+    "description": "大神 token（旧版备用）",
     "type": "string",
-    "hint": "在大神主页 F12 控制台运行脚本获取",
+    "hint": "推荐在插件详情页打开“大神账号授权”保存或迁移凭证",
     "default": ""
   },
   "default_timeout": {
@@ -40,6 +40,13 @@
     "type": "int",
     "hint": "周总结数据量大，建议 90 秒以上",
     "default": 90
+  },
+  "llm_provider_id": {
+    "description": "插件独立 LLM 模型",
+    "type": "string",
+    "_special": "select_provider",
+    "hint": "选择本插件 AI 锐评/开庭使用的模型；留空时使用当前会话在 AstrBot 中选择的模型",
+    "default": ""
   },
   "ai_timeout": {
     "description": "AI 锐评/开庭请求超时（秒）",

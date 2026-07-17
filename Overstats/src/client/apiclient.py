@@ -844,6 +844,7 @@ class DashenAPIClient:
         token: Optional[str] = None,
     ) -> None:
         self.client_config = client_config or CLIENT_CONFIG
+        self._credential_pool_lock = threading.RLock()
         self.match_detail_recorder = match_detail_recorder
         self.player_identity_recorder = player_identity_recorder
         self.request_metrics_recorder = request_metrics_recorder
@@ -870,12 +871,30 @@ class DashenAPIClient:
         else:
             self.credential_pool = DashenCredentialPool.from_config(self.client_config)
 
+    def replace_credentials(self, credentials: Sequence[DashenCredential]) -> None:
+        """Atomically replace credentials used by subsequent upstream requests."""
+        credential_pool = DashenCredentialPool(
+            credentials,
+            cooldown_seconds=self.client_config.account_failure_cooldown_seconds,
+        )
+        with self._credential_pool_lock:
+            self.credential_pool = credential_pool
+
+    def clear_credentials(self) -> None:
+        """Disable authenticated requests until credentials are configured again."""
+        with self._credential_pool_lock:
+            self.credential_pool = None
+
     def _select_credential(self, preferred_token: Optional[str] = None) -> DashenCredential:
+        with self._credential_pool_lock:
+            credential_pool = self.credential_pool
+        if credential_pool is None:
+            raise RuntimeError("Dashen credentials are not configured.")
         if preferred_token:
-            matched = self.credential_pool.get_by_token(preferred_token)
+            matched = credential_pool.get_by_token(preferred_token)
             if matched is not None:
                 return matched
-        return self.credential_pool.next_credential()
+        return credential_pool.next_credential()
 
     async def _record_upstream_metric(self, url: str, success: bool) -> None:
         if not is_database_write_enabled():

@@ -1,0 +1,8 @@
+{
+  "pages": {
+    "dashen-auth": {
+      "title": "Dashen Account Authorization",
+      "description": "Securely save, migrate, and update NetEase Dashen credentials"
+    }
+  }
+}

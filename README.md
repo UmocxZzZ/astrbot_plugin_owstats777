@@ -24,7 +24,7 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 1. 从 `release/` 目录下载 `astrbot_plugin_owstats777_bundled.zip`
 2. 在 Astrbot WebUI 上传插件（或解压到插件目录）
 3. 重启 Astrbot
-4. 在插件配置中填写大神 `dashen_role_id` 和 `dashen_token`
+4. 在插件详情页打开“大神账号授权”，安全保存大神 `role_id` 和 `token`
 5. 发送 `ow help` 测试
 
 ### 方式二：普通版（暂不开放）
@@ -69,14 +69,25 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 | `overstats_url` | `http://127.0.0.1:18080` | Overstats 服务地址 |
 | `overstats_port` | `18080` | 内置服务端口 |
 | `embedded_overstats` | `true` | 是否启用内置服务 |
-| `dashen_role_id` | 空 | 大神 role_id |
-| `dashen_token` | 空 | 大神 token |
+| `dashen_role_id` | 空 | 大神 role_id（旧版备用配置） |
+| `dashen_token` | 空 | 大神 token（旧版备用配置） |
 | `default_timeout` | `120` | 默认请求超时（秒） |
 | `ai_timeout` | `180` | AI 锐评/开庭超时（秒） |
 | `ai_whitelist` | `[]` | AI 白名单用户列表 |
 | `ai_cooldown_seconds` | `300` | AI 冷却时间（秒） |
 
-## 大神 ROLE_ID 获取
+## 大神账号授权
+
+推荐在 AstrBot 插件详情页打开“大神账号授权”：
+
+1. 新安装可直接录入 `role_id` 和 `token`
+2. 已在插件设置中配置凭证的用户，可点击“迁移现有插件配置”
+3. 凭证保存在 AstrBot 插件独立 KV 中，并会立即热更新到内置 Overstats
+4. 页面只显示脱敏后的 `role_id`，不会回显已保存的 token
+
+页面现已支持网易大神扫码授权：扫码并确认后，插件会按大神网页协议在后端完成登录初始化，自动读取已绑定的战网账号 ID、转换 token，并保存到插件独立 KV。若账号绑定了多个战网账号 ID，页面会要求选择一次；网易服务不可用时仍可使用下面的手动获取方式。
+
+## 大神 ROLE_ID 手动获取（备用）
 
 1. 打开大神充值中心：https://pay.ds.163.com/activity/ld5?addSkeleton=1&channel=yydc_cps10.cczx&setId=67b466a5b8cf7e3576aa3521
 2. 确认已登录并绑定战网账号
@@ -85,7 +96,7 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 5. 在网络请求中搜索 `&role_id`
 6. 复制 `role_id` 后面的数字（如 `114514191`）
 
-## 大神 Token 获取
+## 大神 Token 手动获取（备用）
 
 1. 打开大神主页 https://ds.163.com/
 2. F12 打开控制台
@@ -163,4 +174,3 @@ Astrbot 插件，封装 [Overstats](https://github.com/AddOneSecondL/Overstats) 
 ## 排障
 
 常见问题请参考 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-

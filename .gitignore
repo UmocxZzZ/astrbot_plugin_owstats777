@@ -29,6 +29,8 @@ Thumbs.db
 # 构建产物
 *.zip
 *.tar.gz
+astrbot_plugin_owstats777_bundled/
+release/
 
 # 测试数据
 court_image_*.png
