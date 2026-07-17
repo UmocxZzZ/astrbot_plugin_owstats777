@@ -176,7 +176,8 @@ function showMessage(text, kind = "success") {
 
 function sourceLabel(source) {
   return {
-    plugin_kv: "插件独立 KV",
+    plugin_data: "插件私有数据目录",
+    plugin_kv: "旧版插件 KV",
     plugin_config: "旧版插件配置",
     none: "未配置",
   }[source] || "未知";
@@ -519,7 +520,7 @@ elements.migrateButton.addEventListener("click", async () => {
     showMessage(
       status.legacy_config_cleared === false
         ? "凭证已迁移，但旧配置副本清理失败，请查看日志。"
-        : "旧版插件配置已迁移到插件独立 KV。",
+        : "旧版插件配置已迁移到插件私有数据目录。",
       status.legacy_config_cleared === false ? "warning" : "success",
     );
   } catch (error) {

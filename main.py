@@ -20,12 +20,13 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 import httpx
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
-from astrbot.api.star import Context, Star
+from astrbot.api.star import Context, Star, StarTools
 from quart import jsonify, request as web_request
 
 
 PLUGIN_NAME = "astrbot_plugin_owstats777"
 DASHEN_CREDENTIAL_KV_KEY = "dashen_credentials/v1"
+DASHEN_CREDENTIAL_FILE = "dashen_credentials.json"
 DASHEN_QR_PRODUCT = "godlike_web"
 DASHEN_QR_API_ROOT = "https://q.reg.163.com/qrcode"
 DASHEN_INFO_API_ROOT = "https://inf.ds.163.com"
@@ -176,8 +177,52 @@ class OWStatsPlugin(Star):
             logger.warning("插件配置中的大神凭证格式无效")
             return None
 
+    @staticmethod
+    def _dashen_credential_path() -> Path:
+        return StarTools.get_data_dir(PLUGIN_NAME) / DASHEN_CREDENTIAL_FILE
+
+    def _read_dashen_credential_file(self) -> Optional[Dict[str, Any]]:
+        path = self._dashen_credential_path()
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning(f"读取大神凭证文件失败: {type(exc).__name__}")
+            return None
+        if not isinstance(payload, dict):
+            logger.warning("大神凭证文件格式无效")
+            return None
+        return payload
+
+    def _write_dashen_credential_file(self, credential: Dict[str, Any]) -> None:
+        path = self._dashen_credential_path()
+        temp_path = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
+        try:
+            temp_path.write_text(
+                json.dumps(credential, ensure_ascii=False, separators=(",", ":")),
+                encoding="utf-8",
+            )
+            try:
+                temp_path.chmod(0o600)
+            except OSError:
+                pass
+            temp_path.replace(path)
+            try:
+                path.chmod(0o600)
+            except OSError:
+                pass
+        finally:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    def _delete_dashen_credential_file(self) -> None:
+        self._dashen_credential_path().unlink(missing_ok=True)
+
     async def _load_dashen_credential(self) -> None:
-        stored = await self.get_kv_data(DASHEN_CREDENTIAL_KV_KEY, {})
+        stored = self._read_dashen_credential_file()
         if isinstance(stored, dict) and stored:
             try:
                 self._dashen_credential = self._normalize_dashen_credential(
@@ -185,10 +230,34 @@ class OWStatsPlugin(Star):
                     stored.get("token"),
                     updated_at=stored.get("updated_at"),
                 )
-                self._dashen_credential_source = "plugin_kv"
+                self._dashen_credential_source = "plugin_data"
+                try:
+                    await self.delete_kv_data(DASHEN_CREDENTIAL_KV_KEY)
+                except Exception as exc:
+                    logger.warning(f"清理旧版大神凭证 KV 失败: {type(exc).__name__}")
                 return
             except ValueError:
-                logger.warning("AstrBot KV 中的大神凭证格式无效，尝试读取旧配置")
+                logger.warning("插件数据目录中的大神凭证格式无效，尝试读取旧存储")
+
+        stored = await self.get_kv_data(DASHEN_CREDENTIAL_KV_KEY, {})
+        if isinstance(stored, dict) and stored:
+            try:
+                credential = self._normalize_dashen_credential(
+                    stored.get("role_id"),
+                    stored.get("token"),
+                    updated_at=stored.get("updated_at"),
+                )
+                self._write_dashen_credential_file(credential)
+                try:
+                    await self.delete_kv_data(DASHEN_CREDENTIAL_KV_KEY)
+                except Exception as exc:
+                    logger.warning(f"清理旧版大神凭证 KV 失败: {type(exc).__name__}")
+                self._dashen_credential = credential
+                self._dashen_credential_source = "plugin_data"
+                logger.info("旧版大神凭证已从 AstrBot KV 迁移到插件数据目录")
+                return
+            except (OSError, ValueError) as exc:
+                logger.warning(f"迁移 AstrBot KV 中的大神凭证失败: {type(exc).__name__}")
 
         legacy = self._dashen_credential_from_config()
         self._dashen_credential = legacy
@@ -237,9 +306,13 @@ class OWStatsPlugin(Star):
             return False
 
     async def _persist_dashen_credential(self, credential: Dict[str, Any]) -> bool:
-        await self.put_kv_data(DASHEN_CREDENTIAL_KV_KEY, credential)
+        self._write_dashen_credential_file(credential)
+        try:
+            await self.delete_kv_data(DASHEN_CREDENTIAL_KV_KEY)
+        except Exception as exc:
+            logger.warning(f"清理旧版大神凭证 KV 失败: {type(exc).__name__}")
         self._dashen_credential = credential
-        self._dashen_credential_source = "plugin_kv"
+        self._dashen_credential_source = "plugin_data"
         legacy_cleared = self._clear_legacy_dashen_config()
         self._apply_dashen_credential()
         return legacy_cleared
@@ -330,6 +403,7 @@ class OWStatsPlugin(Star):
                 if not self._clear_legacy_dashen_config():
                     return self._page_error("旧配置清理失败，未执行解绑")
                 await self.delete_kv_data(DASHEN_CREDENTIAL_KV_KEY)
+                self._delete_dashen_credential_file()
                 self._dashen_credential = None
                 self._dashen_credential_source = "none"
                 self._apply_dashen_credential()

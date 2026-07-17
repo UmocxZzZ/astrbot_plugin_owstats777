@@ -3,7 +3,7 @@ display_name: OWStats 守望先锋数据查询
 short_desc: 守望先锋国服数据查询插件
 desc: |
   守望先锋国服数据查询插件，支持玩家资料、战绩详情、段位历史、总结图片、AI 锐评、AI 开庭等功能。
-version: 0.3.0
+version: 0.3.1
 author: UmocxZzZ
 support_platforms:
   - aiocqhttp
