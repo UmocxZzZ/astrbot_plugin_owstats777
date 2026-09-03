@@ -32,6 +32,11 @@ Thumbs.db
 astrbot_plugin_owstats777_bundled/
 release/
 
+# TypeScript toolchain
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+
 # 测试数据
 court_image_*.png
 court_result.json
