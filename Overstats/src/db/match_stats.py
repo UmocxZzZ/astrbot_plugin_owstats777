@@ -17,6 +17,7 @@ COMP_DATA_SUMMARY_TABLE = "comp_data_summary"
 HERO_PERK_PICK_TABLE = "hero_perk_pick"
 HERO_PERK_SUMMARY_TABLE = "hero_perk_summary"
 OVERALL_RANK_BUCKET_KEY = -1
+SQLITE_BUSY_TIMEOUT_MS = 15_000
 
 
 class IDPoolDB:
@@ -47,20 +48,39 @@ class IDPoolDB:
             self._warn_once(f"match stats sqlite db not found: {self.db_path}")
             return None
         try:
-            connection = sqlite3.connect(str(self.db_path))
+            connection = sqlite3.connect(
+                str(self.db_path),
+                timeout=SQLITE_BUSY_TIMEOUT_MS / 1000,
+            )
             connection.row_factory = None
+            connection.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
             return connection
         except Exception as exc:
             self._warn_once(f"match stats sqlite connection failed: {type(exc).__name__}: {exc}")
             return None
 
     def _get_write_connection(self) -> Optional[sqlite3.Connection]:
+        connection: Optional[sqlite3.Connection] = None
         try:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            connection = sqlite3.connect(str(self.db_path), timeout=30)
+            connection = sqlite3.connect(
+                str(self.db_path),
+                timeout=SQLITE_BUSY_TIMEOUT_MS / 1000,
+            )
             connection.row_factory = None
+            connection.execute(f"PRAGMA busy_timeout={SQLITE_BUSY_TIMEOUT_MS}")
+            # WAL keeps readers on a stable snapshot while the recorder appends a
+            # batch, avoiding the read/write lock collision in strength renders.
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("PRAGMA synchronous=NORMAL")
+            connection.execute("PRAGMA wal_autocheckpoint=1000")
             return connection
         except Exception as exc:
+            if connection is not None:
+                try:
+                    connection.close()
+                except Exception:
+                    pass
             self._warn_once(f"match stats sqlite write connection failed: {type(exc).__name__}: {exc}")
             return None
 
@@ -552,6 +572,276 @@ class IDPoolDB:
                 ratio_statmap_names=set(ratio_statmap_names),
                 group_by_rank=group_by_rank,
             )
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    def get_personal_stat_percentiles(
+        self,
+        feature_values: Sequence[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Compare personal hero-stat averages with per-player database averages.
+
+        Each database player contributes exactly one value to a feature, regardless
+        of how many matching records that player has. ``exceeded_percent`` counts
+        lower player averages for normal metrics and higher averages for metrics
+        marked with ``reverse`` (currently deaths).
+        """
+        normalized_features: List[tuple[str, str, float, int]] = []
+        seen_keys: set[tuple[str, str]] = set()
+        for item in feature_values or []:
+            if not isinstance(item, dict):
+                continue
+            hero_guid = str(item.get("hero_guid") or "").strip()
+            statmap_name = str(item.get("statmap_name") or "").strip()
+            if not hero_guid or not statmap_name:
+                continue
+            try:
+                value = float(item.get("value"))
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(value):
+                continue
+            reverse = 1 if bool(item.get("reverse")) else 0
+            key = (hero_guid, statmap_name)
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            normalized_features.append((hero_guid, statmap_name, value, reverse))
+
+        if not normalized_features:
+            return []
+
+        conn = self._get_connection()
+        if conn is None:
+            return []
+
+        results: List[Dict[str, Any]] = []
+        try:
+            cursor = conn.cursor()
+            try:
+                target_rows_sql = ",".join(["(?, ?, ?, ?)"] * len(normalized_features))
+                params = tuple(value for feature in normalized_features for value in feature)
+                cursor.execute(
+                    f"""
+                    WITH targets(hero_guid, statmap_name, target_value, reverse) AS (
+                        VALUES {target_rows_sql}
+                    ),
+                    player_values AS (
+                        SELECT
+                            targets.hero_guid,
+                            targets.statmap_name,
+                            targets.target_value,
+                            targets.reverse,
+                            comp.player_bnet_id,
+                            AVG(comp.statmap_value) AS player_value
+                        FROM targets
+                        JOIN {COMP_DATA_TABLE} AS comp
+                            ON comp.hero_guid = targets.hero_guid
+                            AND comp.statmap_name = targets.statmap_name
+                        WHERE comp.player_bnet_id != ''
+                        GROUP BY
+                            targets.hero_guid,
+                            targets.statmap_name,
+                            targets.target_value,
+                            targets.reverse,
+                            comp.player_bnet_id
+                    )
+                    SELECT
+                        hero_guid,
+                        statmap_name,
+                        target_value,
+                        reverse,
+                        COUNT(*) AS player_count,
+                        COALESCE(
+                            SUM(
+                                CASE
+                                    WHEN reverse = 1 AND player_value > target_value THEN 1
+                                    WHEN reverse = 0 AND player_value < target_value THEN 1
+                                    ELSE 0
+                                END
+                            ),
+                            0
+                        ) AS exceeded_count
+                    FROM player_values
+                    GROUP BY hero_guid, statmap_name, target_value, reverse
+                    """,
+                    params,
+                )
+                rows = cursor.fetchall() or []
+            finally:
+                cursor.close()
+            by_key = {
+                (hero_guid, statmap_name): index
+                for index, (hero_guid, statmap_name, _, _) in enumerate(normalized_features)
+            }
+            for hero_guid, statmap_name, value, reverse, player_count, exceeded_count in rows:
+                player_count = int(player_count or 0)
+                exceeded_count = int(exceeded_count or 0)
+                if player_count <= 0:
+                    continue
+                results.append(
+                    {
+                        "hero_guid": str(hero_guid),
+                        "statmap_name": str(statmap_name),
+                        "value": float(value),
+                        "reverse": bool(reverse),
+                        "player_count": player_count,
+                        "exceeded_count": exceeded_count,
+                        "exceeded_percent": exceeded_count * 100.0 / player_count,
+                    }
+                )
+            results.sort(key=lambda item: by_key[(item["hero_guid"], item["statmap_name"])])
+            return results
+        except Exception as exc:
+            self._warn_once(
+                "match stats sqlite get_personal_stat_percentiles failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return []
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    def get_personal_kda_percentiles(
+        self,
+        feature_values: Sequence[Dict[str, Any]],
+        *,
+        kill_guid: str = "603482350067646495",
+        assist_guid: str = "603482350067648392",
+        death_guid: str = "603482350067646506",
+    ) -> List[Dict[str, Any]]:
+        """Compare derived KDA values after aggregating each database player."""
+        normalized_features: List[tuple[str, float]] = []
+        seen_heroes: set[str] = set()
+        for item in feature_values or []:
+            if not isinstance(item, dict):
+                continue
+            hero_guid = str(item.get("hero_guid") or "").strip()
+            if not hero_guid or hero_guid in seen_heroes:
+                continue
+            try:
+                value = float(item.get("value"))
+            except (TypeError, ValueError):
+                continue
+            if not math.isfinite(value):
+                continue
+            seen_heroes.add(hero_guid)
+            normalized_features.append((hero_guid, value))
+
+        if not normalized_features:
+            return []
+
+        conn = self._get_connection()
+        if conn is None:
+            return []
+
+        try:
+            cursor = conn.cursor()
+            try:
+                target_rows_sql = ",".join(["(?, ?)"] * len(normalized_features))
+                target_params = tuple(value for feature in normalized_features for value in feature)
+                cursor.execute(
+                    f"""
+                    WITH targets(hero_guid, target_value) AS (
+                        VALUES {target_rows_sql}
+                    ),
+                    stat_averages AS (
+                        SELECT
+                            targets.hero_guid,
+                            targets.target_value,
+                            comp.player_bnet_id,
+                            comp.statmap_name,
+                            AVG(comp.statmap_value) AS stat_value
+                        FROM targets
+                        JOIN {COMP_DATA_TABLE} AS comp
+                            ON comp.hero_guid = targets.hero_guid
+                            AND comp.statmap_name IN (?, ?, ?)
+                        WHERE comp.player_bnet_id != ''
+                        GROUP BY
+                            targets.hero_guid,
+                            targets.target_value,
+                            comp.player_bnet_id,
+                            comp.statmap_name
+                    ),
+                    player_components AS (
+                        SELECT
+                            hero_guid,
+                            target_value,
+                            player_bnet_id,
+                            MAX(CASE WHEN statmap_name = ? THEN stat_value END) AS kills,
+                            COALESCE(
+                                MAX(CASE WHEN statmap_name = ? THEN stat_value END),
+                                0.0
+                            ) AS assists,
+                            MAX(CASE WHEN statmap_name = ? THEN stat_value END) AS deaths
+                        FROM stat_averages
+                        GROUP BY hero_guid, target_value, player_bnet_id
+                    ),
+                    player_values AS (
+                        SELECT
+                            hero_guid,
+                            target_value,
+                            player_bnet_id,
+                            (kills + assists) / MAX(deaths, 1.0) AS player_value
+                        FROM player_components
+                        WHERE kills IS NOT NULL AND deaths IS NOT NULL
+                    )
+                    SELECT
+                        hero_guid,
+                        target_value,
+                        COUNT(*) AS player_count,
+                        COALESCE(
+                            SUM(CASE WHEN player_value < target_value THEN 1 ELSE 0 END),
+                            0
+                        ) AS exceeded_count
+                    FROM player_values
+                    GROUP BY hero_guid, target_value
+                    """,
+                    (
+                        *target_params,
+                        kill_guid,
+                        assist_guid,
+                        death_guid,
+                        kill_guid,
+                        assist_guid,
+                        death_guid,
+                    ),
+                )
+                rows = cursor.fetchall() or []
+            finally:
+                cursor.close()
+
+            by_hero = {hero_guid: index for index, (hero_guid, _) in enumerate(normalized_features)}
+            results = []
+            for hero_guid, value, player_count, exceeded_count in rows:
+                player_count = int(player_count or 0)
+                exceeded_count = int(exceeded_count or 0)
+                if player_count <= 0:
+                    continue
+                results.append(
+                    {
+                        "hero_guid": str(hero_guid),
+                        "statmap_name": "KDA",
+                        "value": float(value),
+                        "reverse": False,
+                        "player_count": player_count,
+                        "exceeded_count": exceeded_count,
+                        "exceeded_percent": exceeded_count * 100.0 / player_count,
+                    }
+                )
+            results.sort(key=lambda item: by_hero[item["hero_guid"]])
+            return results
+        except Exception as exc:
+            self._warn_once(
+                "match stats sqlite get_personal_kda_percentiles failed: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return []
         finally:
             try:
                 conn.close()

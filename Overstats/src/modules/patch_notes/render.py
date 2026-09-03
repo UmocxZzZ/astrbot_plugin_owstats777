@@ -262,11 +262,6 @@ def render_patch_fallback(candidate: Mapping[str, Any], *, summary_text: str) ->
 
 
 def _draw_header_card(draw: Any | None, candidate: Mapping[str, Any], summary_text: str, fonts: Mapping[str, Any], y: int) -> int:
-    title_lines = _wrap_text(str(candidate.get("title") or "补丁说明"), fonts["headline"], CANVAS_WIDTH - CANVAS_MARGIN * 2 - 40)
-    summary_lines = []
-    for line in str(summary_text or "").splitlines():
-        wrapped = _wrap_text(line, fonts["small"], CANVAS_WIDTH - CANVAS_MARGIN * 2 - 40)
-        summary_lines.extend(wrapped or [""])
     content_width = CANVAS_WIDTH - CANVAS_MARGIN * 2 - _px(40)
     title_lines = _wrap_text(str(candidate.get("title") or "补丁说明"), fonts["headline"], content_width)
     summary_lines = []
@@ -311,10 +306,8 @@ def _draw_header_card(draw: Any | None, candidate: Mapping[str, Any], summary_te
 
 def _draw_section_title(draw: Any | None, title: str, fonts: Mapping[str, Any], y: int) -> int:
     if draw is not None:
-        draw.text((CANVAS_MARGIN, y), str(title or "Patch Section"), font=fonts["section"], fill=TEXT_ACCENT)
+        draw.text((CANVAS_MARGIN, y), str(title or "补丁章节"), font=fonts["section"], fill=TEXT_ACCENT)
     return y + _px(54)
-    draw.text((CANVAS_MARGIN, y), str(title or "补丁章节"), font=fonts["section"], fill=TEXT_ACCENT)
-    return y + 54
 
 
 def _draw_text_card(
