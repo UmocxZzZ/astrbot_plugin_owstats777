@@ -8,6 +8,9 @@ try:
 except ModuleNotFoundError:
     from src.client.apiclient import DashenAPIClient, dashen_api_client
 
+from ..errors import ModuleError
+from ..query_tool.requests import QueryToolRequests
+
 
 @dataclass(frozen=True)
 class BnetSearchResult:
@@ -41,10 +44,27 @@ def normalize_bnet_id(bnet_id: str) -> str:
 
 
 class BnetSearchRequests:
-    def __init__(self, api_client: Optional[DashenAPIClient] = None) -> None:
+    def __init__(
+        self,
+        api_client: Optional[DashenAPIClient] = None,
+        query_tool_requests: Optional[QueryToolRequests] = None,
+    ) -> None:
         self.api_client = api_client or dashen_api_client
+        self.query_tool_requests = query_tool_requests or QueryToolRequests()
 
     async def search(self, bnet_id: str) -> BnetSearchResult:
         query = normalize_bnet_id(bnet_id)
         payload = await self.api_client.search_bnet_account(query)
-        return BnetSearchResult(query=query, payload=payload)
+        result = BnetSearchResult(query=query, payload=payload)
+        if result.customer_token:
+            return result
+
+        notice = await self.query_tool_requests.fetch_search_maintenance_notice()
+        if notice:
+            raise ModuleError(
+                error="dashen_search_maintenance",
+                message="NetEase Dashen search interface is under maintenance.",
+                status_code=503,
+                details={"official_notice": notice},
+            )
+        return result

@@ -1695,6 +1695,7 @@ class OWStatsPlugin(Star):
                 # 已知错误码：替换英文消息为中文提示
                 error_messages = {
                     "bnet_not_found": "未找到该玩家，请检查 BattleTag 是否正确（区分大小写，如 Player#12345）",
+                    "dashen_search_maintenance": "网易大神官方搜索接口暂时维护中，请等待恢复后重试。",
                     "invalid_json": "请求格式错误",
                     "missing_target": "请提供 BattleTag 或先绑定",
                     "missing_match_selector": "请提供对局序号，如：ow 详情 1",

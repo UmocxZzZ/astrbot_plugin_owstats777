@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any, Dict
 
 import httpx
@@ -14,6 +15,9 @@ REMOTE_HERO_ATTR_URL = "https://s.166.net/config/ds_ow/ow_hero_attr.json"
 REMOTE_PERK_LIST_URL = "https://s.166.net/config/ds_ow/ow_perk_list.json"
 
 REMOTE_TIMEOUT = 30
+SEARCH_NOTICE_TIMEOUT = 6
+SEARCH_NOTICE_TTL_SECONDS = 30
+SEARCH_NOTICE_FAILURE_TTL_SECONDS = 5
 REMOTE_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -32,8 +36,47 @@ REMOTE_SECTION_SOURCES = {
 }
 REMOTE_TOOL_EXCLUDED_KEYS = set(MANUAL_KEYS) | set(REMOTE_SECTION_SOURCES)
 
+_SEARCH_NOTICE_CACHE = ""
+_SEARCH_NOTICE_EXPIRES_AT = 0.0
+
+
+def extract_search_maintenance_notice(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    notice = str(payload.get("noticeMessage") or "").strip()
+    if "搜索" not in notice:
+        return ""
+    if not any(keyword in notice for keyword in ("维护", "暂停", "不可用")):
+        return ""
+    return notice
+
 
 class QueryToolRequests:
+    async def fetch_search_maintenance_notice(self, *, force_refresh: bool = False) -> str:
+        global _SEARCH_NOTICE_CACHE, _SEARCH_NOTICE_EXPIRES_AT
+
+        now = time.monotonic()
+        if not force_refresh and now < _SEARCH_NOTICE_EXPIRES_AT:
+            return _SEARCH_NOTICE_CACHE
+
+        ttl = SEARCH_NOTICE_TTL_SECONDS
+        try:
+            async with httpx.AsyncClient(
+                headers=REMOTE_HEADERS,
+                timeout=SEARCH_NOTICE_TIMEOUT,
+                follow_redirects=True,
+            ) as client:
+                payload = await self._fetch_json(client, REMOTE_QUERY_TOOL_URL, "query_tool")
+            notice = extract_search_maintenance_notice(payload)
+        except Exception as exc:
+            notice = ""
+            ttl = SEARCH_NOTICE_FAILURE_TTL_SECONDS
+            print(f"[overstats] failed to check Dashen search maintenance notice: {exc}")
+
+        _SEARCH_NOTICE_CACHE = notice
+        _SEARCH_NOTICE_EXPIRES_AT = time.monotonic() + ttl
+        return notice
+
     async def fetch_remote_query_tool(self) -> Dict[str, Any]:
         async with httpx.AsyncClient(headers=REMOTE_HEADERS, timeout=REMOTE_TIMEOUT) as client:
             merged: Dict[str, Any] = {}
