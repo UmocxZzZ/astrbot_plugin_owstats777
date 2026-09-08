@@ -33,6 +33,13 @@ DASHEN_INFO_API_ROOT = "https://inf.ds.163.com"
 DASHEN_QR_TTL_SECONDS = 300
 DASHEN_QR_MAX_SESSIONS = 6
 DASHEN_QR_POLL_INTERVAL_MS = 2000
+DASHEN_QUERY_TOOL_CONFIG_URL = "https://s.166.net/config/ds_ow/ow_record_query_tool.json"
+DASHEN_SEARCH_NOTICE_TTL_SECONDS = 30
+DASHEN_SEARCH_NOTICE_FAILURE_TTL_SECONDS = 5
+
+
+class DashenSearchMaintenanceError(RuntimeError):
+    pass
 
 
 class OWStatsPlugin(Star):
@@ -56,6 +63,9 @@ class OWStatsPlugin(Star):
         self._dashen_credential: Optional[Dict[str, Any]] = None
         self._dashen_credential_source = "none"
         self._dashen_credential_lock = asyncio.Lock()
+        self._dashen_search_notice = ""
+        self._dashen_search_notice_expires_at = 0.0
+        self._dashen_search_notice_lock = asyncio.Lock()
         self._dashen_qr_sessions: Dict[str, Dict[str, Any]] = {}
         self._dashen_qr_sessions_lock = asyncio.Lock()
         self._register_dashen_auth_apis()
@@ -1616,8 +1626,66 @@ class OWStatsPlugin(Star):
         except Exception:
             return False
 
+    @staticmethod
+    def _uses_dashen_player_search(endpoint: str, payload: dict) -> bool:
+        if "/dashen-" not in str(endpoint or ""):
+            return False
+        bnet_keys = (
+            "bnet_id",
+            "bnetId",
+            "full_id",
+            "fullId",
+            "player1_bnet_id",
+            "player1BnetId",
+            "player2_bnet_id",
+            "player2BnetId",
+        )
+        return any(str(payload.get(key) or "").strip() for key in bnet_keys)
+
+    async def _get_dashen_search_maintenance_notice(self) -> str:
+        now = time.monotonic()
+        if now < self._dashen_search_notice_expires_at:
+            return self._dashen_search_notice
+
+        async with self._dashen_search_notice_lock:
+            now = time.monotonic()
+            if now < self._dashen_search_notice_expires_at:
+                return self._dashen_search_notice
+
+            notice = ""
+            ttl = DASHEN_SEARCH_NOTICE_TTL_SECONDS
+            try:
+                response = await self.client.get(
+                    DASHEN_QUERY_TOOL_CONFIG_URL,
+                    headers={"Cache-Control": "no-cache"},
+                    timeout=6,
+                )
+                response.raise_for_status()
+                config_payload = response.json()
+                if isinstance(config_payload, dict):
+                    candidate = str(config_payload.get("noticeMessage") or "").strip()
+                    if "搜索" in candidate and any(
+                        keyword in candidate for keyword in ("维护", "暂停", "不可用")
+                    ):
+                        notice = candidate
+            except Exception as exc:
+                ttl = DASHEN_SEARCH_NOTICE_FAILURE_TTL_SECONDS
+                logger.warning(f"网易大神搜索维护状态检查失败: {type(exc).__name__}: {exc}")
+
+            self._dashen_search_notice = notice
+            self._dashen_search_notice_expires_at = time.monotonic() + ttl
+            return notice
+
+    async def _raise_if_dashen_search_maintenance(self, endpoint: str, payload: dict) -> None:
+        if not self._uses_dashen_player_search(endpoint, payload):
+            return
+        notice = await self._get_dashen_search_maintenance_notice()
+        if notice:
+            raise DashenSearchMaintenanceError(notice)
+
     async def _call_overstats(self, endpoint: str, payload: dict, timeout: Optional[int] = None) -> dict:
         """调用 Overstats API"""
+        await self._raise_if_dashen_search_maintenance(endpoint, payload)
         url = f"{self.overstats_url}{endpoint}"
         resp = await self.client.post(url, json=payload, timeout=timeout or self.default_timeout)
         resp.raise_for_status()
@@ -1625,6 +1693,7 @@ class OWStatsPlugin(Star):
 
     async def _call_overstats_image(self, endpoint: str, payload: dict, timeout: Optional[int] = None) -> bytes:
         """调用 Overstats 图片 API，返回 PNG 二进制"""
+        await self._raise_if_dashen_search_maintenance(endpoint, payload)
         url = f"{self.overstats_url}{endpoint}"
         resp = await self.client.post(url, json=payload, timeout=timeout or self.default_timeout)
         resp.raise_for_status()
@@ -1671,7 +1740,9 @@ class OWStatsPlugin(Star):
 
     async def _handle_overstats_error(self, event: AstrMessageEvent, exc: Exception):
         """统一错误处理"""
-        if isinstance(exc, httpx.TimeoutException):
+        if isinstance(exc, DashenSearchMaintenanceError):
+            yield event.plain_result("网易大神官方搜索接口暂时维护中，请等待恢复后重试。")
+        elif isinstance(exc, httpx.TimeoutException):
             yield event.plain_result("请求超时，Overstats 服务繁忙，请稍后重试。")
         elif isinstance(exc, httpx.ConnectError):
             yield event.plain_result("无法连接 Overstats 服务，请确认服务已启动。")

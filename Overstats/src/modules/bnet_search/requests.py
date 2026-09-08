@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
+import httpx
+
 try:
     from overstats.src.client.apiclient import DashenAPIClient, dashen_api_client
 except ModuleNotFoundError:
@@ -54,11 +56,19 @@ class BnetSearchRequests:
 
     async def search(self, bnet_id: str) -> BnetSearchResult:
         query = normalize_bnet_id(bnet_id)
-        payload = await self.api_client.search_bnet_account(query)
+        try:
+            payload = await self.api_client.search_bnet_account(query)
+        except httpx.RequestError:
+            await self._raise_if_search_maintenance()
+            raise
         result = BnetSearchResult(query=query, payload=payload)
         if result.customer_token:
             return result
 
+        await self._raise_if_search_maintenance()
+        return result
+
+    async def _raise_if_search_maintenance(self) -> None:
         notice = await self.query_tool_requests.fetch_search_maintenance_notice()
         if notice:
             raise ModuleError(
@@ -67,4 +77,3 @@ class BnetSearchRequests:
                 status_code=503,
                 details={"official_notice": notice},
             )
-        return result
