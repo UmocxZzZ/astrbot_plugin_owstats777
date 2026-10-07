@@ -4,7 +4,7 @@ import asyncio
 import base64
 import copy
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import json
 import re
 import threading
@@ -47,6 +47,7 @@ from .enhanced_render import (
 from .render import (
     RenderedImage,
     _extract_match_detail_data,
+    _is_query_player,
     _load_ow_config,
     _sort_players,
     render_match_detail,
@@ -63,6 +64,7 @@ PLAYER_CARD_CACHE_TTL = 1800
 PLAYER_CARD_CACHE_MAX = 512
 REPLY_CONTEXT_CACHE_TTL = 1800
 REPLY_CONTEXT_CACHE_MAX = 256
+UNKNOWN_PLAYER_LABEL = "未知玩家"
 
 _CACHE_LOCK = threading.RLock()
 _PLAYER_TOKEN_CACHE: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
@@ -121,9 +123,18 @@ def _resolved_payload(resolved: Optional[BnetSearchResult]) -> Optional[Dict[str
         "query": resolved.query,
         "full_id": resolved.full_id,
         "bnet_id": resolved.bnet_id,
-        "customer_token": resolved.customer_token,
         "has_customer_token": bool(resolved.customer_token),
     }
+
+
+def _safe_display_identity(value: Any) -> str:
+    """Return a player label only when it cannot be a rendered token label."""
+
+    text = str(value or "").strip()
+    lowered = text.casefold()
+    if lowered.startswith(("token:", "ctoken:", "customer_token:", "customer-token:", "customer:")):
+        return ""
+    return text
 
 
 def _image_reply(rendered: RenderedImage) -> Dict[str, Any]:
@@ -219,7 +230,7 @@ class DashenMatchModule:
     async def query_match_list(self, query: DashenMatchQuery, *, render: bool = True) -> DashenMatchListOutput:
         query, resolved_bnet = await self._resolve_query(query)
         matches = await self.requests.list_recent_matches(query)
-        full_id = resolved_bnet.full_id if resolved_bnet else (query.bnet_id or f"token:{query.customer_token}")
+        full_id = self._display_identity(query, resolved_bnet)
         image = None
         if render:
             risk_status = await self._fetch_player_risk_status(query.customer_token)
@@ -237,7 +248,7 @@ class DashenMatchModule:
 
     async def query_match_list_replies(self, query: DashenMatchQuery) -> DashenMatchRepliesOutput:
         result = await self.query_match_list(query, render=True)
-        full_id = result.resolved_bnet.full_id if result.resolved_bnet else (query.bnet_id or f"token:{result.customer_token}")
+        full_id = self._display_identity(query, result.resolved_bnet)
         replies = [
             _meta_reply(
                 "ds_match_list",
@@ -270,11 +281,14 @@ class DashenMatchModule:
         image = None
         if render:
             enriched_detail = await self._hydrate_match_detail_risk_statuses(detail.payload)
+            safe_query_full_id = _safe_display_identity(query_full_id) or UNKNOWN_PLAYER_LABEL
+            safe_query_bnet_id = _safe_display_identity(query_bnet_id)
             image = render_match_detail(
                 enriched_detail,
                 source_match=detail.source_match,
-                query_full_id=query_full_id,
-                query_bnet_id=query_bnet_id,
+                query_full_id=safe_query_full_id,
+                query_bnet_id=safe_query_bnet_id,
+                query_customer_token=customer_token,
             )
         return DashenMatchDetailOutput(detail=detail, customer_token=customer_token, image=image)
 
@@ -304,6 +318,7 @@ class DashenMatchModule:
                 source_match=detail.source_match,
                 query_full_id=resolved_bnet.full_id if resolved_bnet else query.bnet_id,
                 query_bnet_id=resolved_bnet.bnet_id if resolved_bnet else "",
+                query_customer_token=query.customer_token,
             )
         return DashenMatchDetailOutput(
             detail=detail,
@@ -336,11 +351,12 @@ class DashenMatchModule:
                     hint='Use {"bnet_id":"Player#12345","index":0} or provide customer_token with match_id.',
                 )
             customer_token = direct_customer_token
-            if query and query.bnet_id:
-                try:
-                    _, resolved_bnet = await self._resolve_query(query)
-                except Exception:
-                    resolved_bnet = None
+            identity_query = replace(query, customer_token=customer_token) if query else DashenMatchQuery(customer_token=customer_token)
+            try:
+                resolved_query, resolved_bnet = await self._resolve_query(identity_query)
+            except Exception:
+                resolved_query = identity_query
+                resolved_bnet = None
             detail = await self._get_match_detail_direct(customer_token, match_id)
         else:
             if query is None or index is None:
@@ -368,9 +384,12 @@ class DashenMatchModule:
             (resolved_bnet.full_id if resolved_bnet else "")
             or (resolved_query.bnet_id if resolved_query else "")
             or (query.bnet_id if query else "")
-            or f"token:{customer_token[:8]}"
+            or UNKNOWN_PLAYER_LABEL
         )
-        query_bnet_id = (resolved_bnet.bnet_id if resolved_bnet else "") or (str(query.bnet_id or "") if query else "")
+        query_full_id = _safe_display_identity(query_full_id) or UNKNOWN_PLAYER_LABEL
+        query_bnet_id = _safe_display_identity(
+            (resolved_bnet.bnet_id if resolved_bnet else "") or (str(query.bnet_id or "") if query else "")
+        )
 
         target_risk_status = await self._fetch_player_risk_status(customer_token)
         detail_root = await self._hydrate_match_detail_risk_statuses(
@@ -382,6 +401,7 @@ class DashenMatchModule:
             source_match=detail.source_match or source_match,
             query_full_id=query_full_id,
             query_bnet_id=query_bnet_id,
+            query_customer_token=customer_token,
         )
         main_header_kwargs: Dict[str, Any] = {
             "bnet_id": query_bnet_id,
@@ -416,7 +436,12 @@ class DashenMatchModule:
                 match_kind=detail.match_kind,
             )
 
-        focus_player = self._find_focus_player(detail_root, query_full_id=query_full_id, query_bnet_id=query_bnet_id)
+        focus_player = self._find_focus_player(
+            detail_root,
+            query_full_id=query_full_id,
+            query_bnet_id=query_bnet_id,
+            query_customer_token=customer_token,
+        )
         focus_detail = {
             "heroList": detail_root.get("heroList") or (focus_player.get("heroList") if focus_player else []) or [],
             "rankInfo": (focus_player.get("rankInfo") if focus_player else {}) or {},
@@ -428,6 +453,7 @@ class DashenMatchModule:
                 detail.match_id,
                 query_full_id=query_full_id,
                 query_bnet_id=query_bnet_id,
+                query_customer_token=customer_token,
             )
             waterfall = render_all_players_waterfall(player_details, match_game_time_sec=detail_root.get("gameTimeSec"))
             waterfall_header_kwargs: Dict[str, Any] = {"bnet_id": query_bnet_id, "subtitle": "全员详细数据"}
@@ -498,11 +524,12 @@ class DashenMatchModule:
                     hint='Use {"bnet_id":"Player#12345","index":0} or provide customer_token with match_id.',
                 )
             customer_token = direct_customer_token
-            if query and query.bnet_id:
-                try:
-                    _, resolved_bnet = await self._resolve_query(query)
-                except Exception:
-                    resolved_bnet = None
+            identity_query = replace(query, customer_token=customer_token) if query else DashenMatchQuery(customer_token=customer_token)
+            try:
+                resolved_query, resolved_bnet = await self._resolve_query(identity_query)
+            except Exception:
+                resolved_query = identity_query
+                resolved_bnet = None
             detail = await self._get_match_detail_direct(customer_token, match_id)
         else:
             if query is None or index is None:
@@ -530,15 +557,18 @@ class DashenMatchModule:
             (resolved_bnet.full_id if resolved_bnet else "")
             or (resolved_query.bnet_id if resolved_query else "")
             or (query.bnet_id if query else "")
-            or f"token:{customer_token[:8]}"
+            or UNKNOWN_PLAYER_LABEL
         )
+        query_full_id = _safe_display_identity(query_full_id) or UNKNOWN_PLAYER_LABEL
         query_bnet_id = (resolved_bnet.bnet_id if resolved_bnet else "") or (str(query.bnet_id or "") if query else "")
+        query_bnet_id = _safe_display_identity(query_bnet_id)
 
         main_image = render_match_detail(
             detail.payload,
             source_match=detail.source_match or source_match,
             query_full_id=query_full_id,
             query_bnet_id=query_bnet_id,
+            query_customer_token=customer_token,
         )
         main_image = decorate_rendered_image_header(
             main_image,
@@ -572,7 +602,12 @@ class DashenMatchModule:
                 match_kind=detail.match_kind,
             )
 
-        focus_player = self._find_focus_player(detail_root, query_full_id=query_full_id, query_bnet_id=query_bnet_id)
+        focus_player = self._find_focus_player(
+            detail_root,
+            query_full_id=query_full_id,
+            query_bnet_id=query_bnet_id,
+            query_customer_token=customer_token,
+        )
         focus_detail = {
             "heroList": detail_root.get("heroList") or (focus_player.get("heroList") if focus_player else []) or [],
             "rankInfo": (focus_player.get("rankInfo") if focus_player else {}) or {},
@@ -583,6 +618,7 @@ class DashenMatchModule:
             detail.match_id,
             query_full_id=query_full_id,
             query_bnet_id=query_bnet_id,
+            query_customer_token=customer_token,
         )
         waterfall = render_all_players_waterfall(player_details, match_game_time_sec=detail_root.get("gameTimeSec"))
         waterfall = decorate_rendered_image_header(waterfall, query_full_id, bnet_id=query_bnet_id, subtitle="全员详细数据")
@@ -641,7 +677,48 @@ class DashenMatchModule:
 
     async def _resolve_query(self, query: DashenMatchQuery) -> tuple[DashenMatchQuery, Optional[BnetSearchResult]]:
         if query.customer_token:
-            return query, None
+            normalized_query = DashenMatchQuery(
+                customer_token=str(query.customer_token).strip(),
+                bnet_id=_safe_display_identity(query.bnet_id),
+                seasons=query.seasons,
+                include_previous_season=query.include_previous_season,
+                include_fight=query.include_fight,
+                target_count=query.target_count,
+                filters=query.filters,
+            )
+            try:
+                card_payload = await self._fetch_cached_player_card(normalized_query.customer_token)
+            except Exception:
+                card_payload = {}
+            card_data = card_payload.get("data") if isinstance(card_payload, dict) else None
+            if not isinstance(card_data, dict):
+                return normalized_query, None
+
+            full_id = _safe_display_identity(card_data.get("name")) or normalized_query.bnet_id
+            bnet_id = str(card_data.get("bnetId") or "").strip()
+            if not full_id and not bnet_id:
+                return normalized_query, None
+
+            identity_data = dict(card_data)
+            identity_data["customerToken"] = normalized_query.customer_token
+            if full_id:
+                identity_data["name"] = full_id
+            if bnet_id:
+                identity_data["bnetId"] = bnet_id
+            resolved_bnet = BnetSearchResult(
+                query=full_id or bnet_id or "customer_token",
+                payload={"data": identity_data},
+            )
+            resolved_query = DashenMatchQuery(
+                customer_token=normalized_query.customer_token,
+                bnet_id=full_id,
+                seasons=normalized_query.seasons,
+                include_previous_season=normalized_query.include_previous_season,
+                include_fight=normalized_query.include_fight,
+                target_count=normalized_query.target_count,
+                filters=normalized_query.filters,
+            )
+            return resolved_query, resolved_bnet
         if not query.bnet_id:
             raise ModuleError(
                 error="missing_target",
@@ -683,6 +760,17 @@ class DashenMatchModule:
             filters=query.filters,
         )
         return resolved_query, search_output.result
+
+    def _display_identity(
+        self,
+        query: DashenMatchQuery,
+        resolved_bnet: Optional[BnetSearchResult],
+    ) -> str:
+        if resolved_bnet is not None:
+            resolved_name = _safe_display_identity(resolved_bnet.full_id)
+            if resolved_name:
+                return resolved_name
+        return _safe_display_identity(query.bnet_id) or UNKNOWN_PLAYER_LABEL
 
     def _reply_context_cache_key(self, query: DashenMatchQuery, resolved_bnet: Optional[BnetSearchResult]) -> str:
         return json.dumps(
@@ -761,20 +849,31 @@ class DashenMatchModule:
                 continue
         return "sport" in str((source_match or {}).get("gameMode") or detail_root.get("gameMode") or "").lower()
 
-    def _find_focus_player(self, detail_root: Dict[str, Any], *, query_full_id: str, query_bnet_id: str) -> Dict[str, Any]:
-        normalized_full = str(query_full_id or "").strip().lower()
-        normalized_tag = normalized_full.split("#", 1)[0]
+    def _find_focus_player(
+        self,
+        detail_root: Dict[str, Any],
+        *,
+        query_full_id: str,
+        query_bnet_id: str,
+        query_customer_token: str = "",
+    ) -> Dict[str, Any]:
         normalized_bnet_id = str(query_bnet_id or "").strip()
-        for player in list(detail_root.get("teammateList") or []) + list(detail_root.get("enemyList") or []):
-            player_name = str(player.get("name") or "").strip().lower()
-            player_tag = player_name.split("#", 1)[0]
-            player_bnet_id = str(player.get("bnetId") or "").strip()
-            if normalized_bnet_id and player_bnet_id and normalized_bnet_id == player_bnet_id:
-                return dict(player)
-            if normalized_full and player_name == normalized_full:
-                return dict(player)
-            if normalized_tag and player_tag == normalized_tag:
-                return dict(player)
+        normalized_customer_token = str(query_customer_token or "").strip()
+        players = list(detail_root.get("teammateList") or []) + list(detail_root.get("enemyList") or [])
+        # Check strong identities across the entire roster before name fallbacks.
+        for token, bnet_id, full_id in (
+            (normalized_customer_token, "", ""),
+            (normalized_customer_token, normalized_bnet_id, ""),
+            (normalized_customer_token, normalized_bnet_id, query_full_id),
+        ):
+            for player in players:
+                if isinstance(player, dict) and _is_query_player(
+                    player,
+                    query_full_id=full_id,
+                    query_bnet_id=bnet_id,
+                    query_customer_token=token,
+                ):
+                    return dict(player)
         return {}
 
     async def _build_all_player_details(
@@ -784,8 +883,14 @@ class DashenMatchModule:
         *,
         query_full_id: str,
         query_bnet_id: str,
+        query_customer_token: str = "",
     ) -> tuple[List[Dict[str, Any]], str]:
-        focus_player = self._find_focus_player(detail_root, query_full_id=query_full_id, query_bnet_id=query_bnet_id)
+        focus_player = self._find_focus_player(
+            detail_root,
+            query_full_id=query_full_id,
+            query_bnet_id=query_bnet_id,
+            query_customer_token=query_customer_token,
+        )
         target_id = str(focus_player.get("name") or query_full_id or "").strip() or query_full_id
         all_targets: List[Dict[str, Any]] = []
         for team_key, team_type in (("teammateList", "teammate"), ("enemyList", "enemy")):

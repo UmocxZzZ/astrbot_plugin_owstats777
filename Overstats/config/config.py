@@ -44,11 +44,11 @@ OW_GUESS_ASSET_ROOT = "ow_guess_assets"
 
 # ======================= Dashen Season ====================== #
 # Effective Dashen season = max(DASHEN_CURRENT_SEASON, max(AIEvaluateConfig[*].seasonIdList)).
-DASHEN_CURRENT_SEASON = 24
+DASHEN_CURRENT_SEASON = 25
 DASHEN_HISTORY_START_SEASON = 15
 
 # ======================= OW Hero Leaderboard ====================== #
-OW_HERO_LEADERBOARD_CN_SEASON = 4
+OW_HERO_LEADERBOARD_CN_SEASON = 5
 
 # ======================= Match Analysis ====================== #
 # OpenAI-compatible base URL

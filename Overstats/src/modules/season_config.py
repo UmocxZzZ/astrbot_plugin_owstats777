@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Mapping, Optional
 
 try:
     from overstats.config import config as overstats_config
@@ -46,7 +45,8 @@ def _read_query_tool_config() -> Dict[str, Any]:
     if path is None:
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
     except Exception:
         return {}
 
@@ -54,7 +54,7 @@ def _read_query_tool_config() -> Dict[str, Any]:
 def parse_dashen_season_time(date_str: str) -> Optional[dt.datetime]:
     """Parse date strings like '2026.4.15' or '2026/4/15' or '2026-04-15'."""
     normalized = str(date_str or "").strip().replace("/", "-").replace(".", "-")
-    for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+    for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m"):
         try:
             return dt.datetime.strptime(normalized, fmt)
         except ValueError:
@@ -63,8 +63,8 @@ def parse_dashen_season_time(date_str: str) -> Optional[dt.datetime]:
 
 
 def get_dashen_manual_season() -> int:
-    """Read DASHEN_CURRENT_SEASON from config (default 23)."""
-    return int(_config_value("DASHEN_CURRENT_SEASON", 23))
+    """Read DASHEN_CURRENT_SEASON from config (default 25)."""
+    return int(_config_value("DASHEN_CURRENT_SEASON", 25))
 
 
 def get_dashen_history_start_season() -> int:
@@ -72,12 +72,16 @@ def get_dashen_history_start_season() -> int:
     return int(_config_value("DASHEN_HISTORY_START_SEASON", 15))
 
 
-def _extract_auto_dashen_season() -> int:
+def _extract_auto_dashen_season(config: Mapping[str, Any]) -> int:
     """Scan AIEvaluateConfig[].seasonIdList in query_tool.json for max season."""
-    config = _read_query_tool_config()
     max_season = 0
-    for entry in config.get("AIEvaluateConfig", []):
-        for season_id in entry.get("seasonIdList", []):
+    entries = config.get("AIEvaluateConfig")
+    if not isinstance(entries, list):
+        return max_season
+    for entry in entries:
+        if not isinstance(entry, Mapping) or not isinstance(entry.get("seasonIdList"), list):
+            continue
+        for season_id in entry["seasonIdList"]:
             try:
                 max_season = max(max_season, int(season_id))
             except (TypeError, ValueError):
@@ -85,48 +89,49 @@ def _extract_auto_dashen_season() -> int:
     return max_season
 
 
-def get_dashen_current_season() -> int:
+def get_dashen_current_season(query_tool_config: Optional[Mapping[str, Any]] = None) -> int:
     """Return max(manual, auto) season."""
     manual = get_dashen_manual_season()
-    auto = _extract_auto_dashen_season()
+    config = query_tool_config if query_tool_config is not None else _read_query_tool_config()
+    auto = _extract_auto_dashen_season(config)
     return max(manual, auto)
 
 
-def get_dashen_season_rollover_at() -> dt.datetime:
+def get_dashen_season_rollover_at(query_tool_config: Optional[Mapping[str, Any]] = None) -> Optional[dt.datetime]:
     """Parse the rollover datetime from query_tool.json's seasonList."""
-    config = _read_query_tool_config()
-    season_list = config.get("seasonList", [])
-    if season_list and isinstance(season_list, list) and len(season_list) > 0:
-        # Use the latest season's startTime as rollover reference
-        latest = season_list[-1] if isinstance(season_list[-1], dict) else {}
-        start_time = latest.get("startTime", "")
-        parsed = parse_dashen_season_time(start_time)
+    config = query_tool_config if query_tool_config is not None else _read_query_tool_config()
+    current = get_dashen_current_season(config)
+    season_list = config.get("seasonList")
+    if not isinstance(season_list, Mapping):
+        return None
+    current_info = season_list.get(str(current))
+    if isinstance(current_info, Mapping):
+        parsed = parse_dashen_season_time(current_info.get("startTime"))
         if parsed is not None:
             return parsed
-    # Fallback: use a reasonable default
-    return dt.datetime(2026, 4, 15, 0, 0, 0)
+    previous_info = season_list.get(str(current - 1))
+    if isinstance(previous_info, Mapping):
+        return parse_dashen_season_time(previous_info.get("endTime"))
+    return None
 
 
-def normalize_query_tool_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def normalize_query_tool_config(config: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     """Fill in missing seasonList entries for seasons from start to current."""
-    current = get_dashen_current_season()
-    start = get_dashen_history_start_season()
-    season_list = config.get("seasonList", [])
-
-    existing_seasons = set()
-    for entry in season_list:
-        if isinstance(entry, dict):
-            try:
-                existing_seasons.add(int(entry.get("seasonId", 0)))
-            except (TypeError, ValueError):
-                continue
-
+    normalized = dict(config or {})
+    current = get_dashen_current_season(normalized)
+    start = min(get_dashen_history_start_season(), current)
+    raw_season_list = normalized.get("seasonList")
+    season_list = dict(raw_season_list) if isinstance(raw_season_list, Mapping) else {}
     for season_id in range(start, current + 1):
-        if season_id not in existing_seasons:
-            season_list.append({
-                "seasonId": season_id,
-                "startTime": f"2025.{(season_id - 15) % 12 + 1}.1",
-            })
-
-    config["seasonList"] = season_list
-    return config
+        key = str(season_id)
+        if isinstance(season_list.get(key), Mapping):
+            continue
+        previous = season_list.get(str(season_id - 1))
+        previous = previous if isinstance(previous, Mapping) else {}
+        season_list[key] = {
+            "startTime": str(previous.get("endTime") or "").strip(),
+            "endTime": "",
+            "desc": f"S{season_id}",
+        }
+    normalized["seasonList"] = season_list
+    return normalized
